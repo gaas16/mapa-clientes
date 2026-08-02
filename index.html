@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mapa de Clientes - Grupo Privado</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Leaflet Geocoder CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; }
+    
+    /* Pantalla de Login / Registro */
+    #auth-screen {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: #2c3e50;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+    }
+
+    .auth-card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      width: 320px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+
+    .auth-card h2 { margin-top: 0; color: #2c3e50; margin-bottom: 20px; }
+    .auth-card input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    .auth-card button {
+      width: 100%;
+      padding: 10px;
+      background: #27ae60;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+
+    .auth-card button.btn-secondary {
+      background: #3498db;
+      margin-top: 8px;
+    }
+
+    .auth-error { color: #e74c3c; font-size: 12px; margin-top: 10px; display: none; }
+
+    /* Contenedor del Mapa */
+    #map { height: 100vh; width: 100%; position: relative; display: none; }
+    
+    /* Panel Flotante del Mapa */
+    .filter-container {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .filter-btn {
+      border: none;
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 12px;
+      color: white;
+    }
+
+    .btn-all { background-color: #2c3e50; }
+    .btn-bueno { background-color: #2ecc71; }
+    .btn-malo { background-color: #e74c3c; }
+    .btn-logout { background-color: #7f8c8d; }
+
+    .instruction-banner {
+      position: absolute;
+      bottom: 20px;
+      left: 15px;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.75);
+      color: white;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    /* Modal Formulario */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      width: 320px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    .modal-content h3 { margin-top: 0; color: #333; margin-bottom: 15px; }
+
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    .form-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-save { background: #27ae60; color: white; border: none; padding: 10px; border-radius: 6px; width: 50%; font-weight: bold; cursor: pointer; }
+    .btn-cancel { background: #95a5a6; color: white; border: none; padding: 10px; border-radius: 6px; width: 50%; font-weight: bold; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <!-- Pantalla de Login / Registro Obligatorio -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <h2 id="auth-title">Acceso al Grupo</h2>
+      <input type="email" id="authEmail" placeholder="Correo Electrónico">
+      <input type="password" id="authPassword" placeholder="Contraseña">
+      
+      <button id="btnLogin" onclick="iniciarSesion()">Iniciar Sesión</button>
+      <button id="btnRegister" class="btn-secondary" onclick="registrarse()">Registrarse</button>
+      
+      <div id="authError" class="auth-error"></div>
+    </div>
+  </div>
+
+  <!-- Contenedor del Mapa -->
+  <div id="map">
+    <!-- Panel Control Superior -->
+    <div class="filter-container">
+      <span style="font-size:12px; font-weight:bold; color:#555;">Filtrar:</span>
+      <button class="filter-btn btn-all" onclick="filtrarMapa('TODOS')">Todos</button>
+      <button class="filter-btn btn-bueno" onclick="filtrarMapa('BUENO')">Buenos</button>
+      <button class="filter-btn btn-malo" onclick="filtrarMapa('MALO')">Malos</button>
+      <button class="filter-btn btn-logout" onclick="cerrarSesion()">Salir</button>
+    </div>
+
+    <!-- Instrucción visual -->
+    <div class="instruction-banner">
+      🔍 Busca la dirección o haz <b>doble clic</b> para agregar un cliente
+    </div>
+  </div>
+
+  <!-- Modal Formulario Agregar Cliente -->
+  <div class="modal-overlay" id="modalForm">
+    <div class="modal-content">
+      <h3>➕ Agregar Nuevo Cliente</h3>
+      
+      <div class="form-group">
+        <label>Nombre del Cliente</label>
+        <input type="text" id="inputNombre" placeholder="Ej: María Silva">
+      </div>
+
+      <div class="form-group">
+        <label>Calificación</label>
+        <select id="inputCalificacion">
+          <option value="BUENO">BUENO (Verde)</option>
+          <option value="MALO">MALO (Rojo)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Monto Solicitado ($)</label>
+        <input type="number" id="inputMonto" placeholder="Ej: 3000">
+      </div>
+
+      <div class="form-group">
+        <label>Score Crédito</label>
+        <input type="number" id="inputScore" placeholder="Ej: 750" value="0">
+      </div>
+
+      <div class="form-group">
+        <label>Motivo / Observación</label>
+        <input type="text" id="inputMotivo" placeholder="Ej: Pago puntual">
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn-save" onclick="guardarNuevoCliente()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS & Geocoder -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      createUserWithEmailAndPassword, 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    // Configuración Firebase
+    const firebaseConfig = {
+      apiKey: "AlzaSyCpY9ycS8APh6xGGsPd3BKF5A2xGLtch9E",
+      authDomain: "creditomapa-7083e.firebaseapp.com",
+      projectId: "creditomapa-7083e",
+      storageBucket: "creditomapa-7083e.firebasestorage.app",
+      messagingSenderId: "353134326446",
+      appId: "1:353134326446:web:0b9c9cb22c34627346333f",
+      measurementId: "G-HNVLR8YOWE"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let map = null;
+    let listaMarcadores = [];
+    let coordenadasTemp = null;
+
+    // Iconos Leaflet
+    const greenIcon = new L.Icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+
+    const redIcon = new L.Icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+
+    // Control de Estado de Autenticación
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('map').style.display = 'block';
+        if (!map) inicializarMapa();
+        cargarClientes();
+      } else {
+        document.getElementById('auth-screen').style.display = 'flex';
+        document.getElementById('map').style.display = 'none';
+      }
+    });
+
+    // Funciones Autenticación
+    window.iniciarSesion = async function() {
+      const email = document.getElementById('authEmail').value;
+      const pass = document.getElementById('authPassword').value;
+      mostrarError("");
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (err) {
+        mostrarError("Error de acceso: " + err.message);
+      }
+    };
+
+    window.registrarse = async function() {
+      const email = document.getElementById('authEmail').value;
+      const pass = document.getElementById('authPassword').value;
+      mostrarError("");
+      try {
+        await createUserWithEmailAndPassword(auth, email, pass);
+      } catch (err) {
+        mostrarError("Error en registro: " + err.message);
+      }
+    };
+
+    window.cerrarSesion = function() {
+      signOut(auth);
+    };
+
+    function mostrarError(msg) {
+      const errDiv = document.getElementById('authError');
+      errDiv.innerText = msg;
+      errDiv.style.display = msg ? 'block' : 'none';
+    }
+
+    // Inicializar Mapa Privado
+    function inicializarMapa() {
+      map = L.map('map', { doubleClickZoom: false }).setView([-29.9189, -51.1781], 13);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
+      }).addTo(map);
+
+      L.Control.geocoder({
+        defaultMarkGeocode: false,
+        placeholder: "Escribe calle y número..."
+      })
+      .on('markgeocode', function(e) {
+        map.setView(e.geocode.center, 17);
+      })
+      .addTo(map);
+
+      map.on('dblclick', function(e) {
+        coordenadasTemp = e.latlng;
+        document.getElementById('modalForm').style.display = 'flex';
+      });
+    }
+
+    function agregarMarcadorAlMapa(data) {
+      const esBueno = (data.calificacion || "").toUpperCase() === 'BUENO';
+      const icono = esBueno ? greenIcon : redIcon;
+
+      const marker = L.marker([data.lat, data.lng], { icon: icono }).addTo(map);
+
+      const popupContent = `
+        <div style="font-size:13px; line-height:1.4;">
+          <b style="text-transform:uppercase;">${data.nombre || 'Cliente sin nombre'}</b><br>
+          <b>Estado:</b> <span style="color:${esBueno ? 'green' : 'red'}; font-weight:bold;">${data.calificacion || 'N/A'}</span><br>
+          <b>Monto solicitado:</b> $${data.monto_solicitado || 0}<br>
+          <b>Score:</b> ${data.score_credito ?? 'N/A'}<br>
+          <b>Motivo:</b> ${data.motivo || 'N/A'}
+        </div>
+      `;
+
+      marker.bindPopup(popupContent);
+
+      listaMarcadores.push({
+        instanciaMarker: marker,
+        categoria: esBueno ? 'BUENO' : 'MALO'
+      });
+    }
+
+    async function cargarClientes() {
+      // Limpiar marcadores previos si existen
+      listaMarcadores.forEach(m => map.removeLayer(m.instanciaMarker));
+      listaMarcadores = [];
+
+      const querySnapshot = await getDocs(collection(db, "clientes"));
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.lat && data.lng) {
+          agregarMarcadorAlMapa(data);
+        }
+      });
+    }
+
+    window.guardarNuevoCliente = async function() {
+      const nombre = document.getElementById('inputNombre').value.trim();
+      const calificacion = document.getElementById('inputCalificacion').value;
+      const monto = parseFloat(document.getElementById('inputMonto').value) || 0;
+      const score = parseInt(document.getElementById('inputScore').value) || 0;
+      const motivo = document.getElementById('inputMotivo').value.trim();
+
+      if (!nombre) {
+        alert("Por favor ingresa el nombre del cliente");
+        return;
+      }
+
+      const nuevoCliente = {
+        nombre: nombre,
+        calificacion: calificacion,
+        monto_solicitado: monto,
+        score_credito: score,
+        motivo: motivo,
+        lat: coordenadasTemp.lat,
+        lng: coordenadasTemp.lng
+      };
+
+      try {
+        await addDoc(collection(db, "clientes"), nuevoCliente);
+        agregarMarcadorAlMapa(nuevoCliente);
+        cerrarModal();
+      } catch (error) {
+        alert("Error al guardar: " + error.message);
+      }
+    };
+
+    window.cerrarModal = function() {
+      document.getElementById('modalForm').style.display = 'none';
+      document.getElementById('inputNombre').value = '';
+      document.getElementById('inputMonto').value = '';
+      document.getElementById('inputScore').value = '0';
+      document.getElementById('inputMotivo').value = '';
+    };
+
+    window.filtrarMapa = function(tipo) {
+      listaMarcadores.forEach(item => {
+        if (tipo === 'TODOS' || item.categoria === tipo) {
+          map.addLayer(item.instanciaMarker);
+        } else {
+          map.removeLayer(item.instanciaMarker);
+        }
+      });
+    };
+  </script>
+</body>
+</html>
