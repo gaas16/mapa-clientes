@@ -144,6 +144,23 @@
     .form-actions { display: flex; gap: 10px; margin-top: 20px; }
     .btn-save { background: #27ae60; color: white; border: none; padding: 10px; border-radius: 6px; width: 50%; font-weight: bold; cursor: pointer; }
     .btn-cancel { background: #95a5a6; color: white; border: none; padding: 10px; border-radius: 6px; width: 50%; font-weight: bold; cursor: pointer; }
+    /* Ajuste de tamaño para el cuadro del cliente en móviles */
+  .leaflet-popup-content-wrapper {
+    padding: 12px !important;
+    border-radius: 12px !important;
+  }
+  .leaflet-popup-content {
+    font-size: 15px !important;
+    line-height: 1.5 !important;
+    margin: 10px 12px !important;
+    min-width: 220px !important;
+  }
+  .leaflet-popup-content b,
+  .leaflet-popup-content strong {
+    font-size: 16px !important;
+    display: block;
+    margin-bottom: 5px;
+  }
   </style>
 </head>
 <body>
