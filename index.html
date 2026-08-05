@@ -405,6 +405,7 @@
 
     window.guardarNuevoCliente = async function() {
       const nombre = document.getElementById('inputNombre').value.trim();
+      const direccion = document.getElementById('inputDireccion').value.trim();
       const calificacion = document.getElementById('inputCalificacion').value;
       const monto = parseFloat(document.getElementById('inputMonto').value) || 0;
       const score = parseInt(document.getElementById('inputScore').value) || 0;
@@ -417,6 +418,7 @@
 
       const nuevoCliente = {
         nombre: nombre,
+        direccion: direccion,
         calificacion: calificacion,
         monto_solicitado: monto,
         score_credito: score,
@@ -437,6 +439,7 @@
     window.cerrarModal = function() {
       document.getElementById('modalForm').style.display = 'none';
       document.getElementById('inputNombre').value = '';
+      document.getElementById('inputDireccion').value = '';
       document.getElementById('inputMonto').value = '';
       document.getElementById('inputScore').value = '0';
       document.getElementById('inputMotivo').value = '';
