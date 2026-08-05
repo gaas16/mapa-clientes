@@ -365,17 +365,24 @@
       });
     }
 
-    function agregarMarcadorAlMapa(data) {
-      const esBueno = (data.calificacion || "").toUpperCase() === 'BUENO';
-      const icono = esBueno ? greenIcon : redIcon;
+function agregarMarcadorAlMapa(data) {
+  const calificacion = (data.calificacion || "").toUpperCase();
 
-      const marker = L.marker([data.lat, data.lng], { icon: icono }).addTo(map);
-const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion}` : '';
+  // Definir color según calificación
+  let colorEstado = 'red';
+  if (calificacion === 'BUENO') colorEstado = 'green';
+  if (calificacion === 'REGULAR') colorEstado = 'orange';
+
+  // Definir icono según calificación
+  const icono = (calificacion === 'BUENO') ? greenIcon : redIcon;
+
+  const marker = L.marker([data.lat, data.lng], { icon: icono }).addTo(map);
+ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion}` : '';
 
   const popupContent = `
     <div style="font-size:13px; line-height:1.4;">
       <b style="text-transform:uppercase;">${data.nombre || 'Cliente sin nombre'}</b><br>
-      <b>Estado:</b> <span style="color:${esBueno ? 'green' : 'red'}; font-weight:bold;">${data.calificacion}</span><br>
+      <b>Estado:</b> <span style="color:${colorEstado}; font-weight:bold;">${calificacion || 'N/A'}</span><br>
       <b>Monto solicitado:</b> $${data.monto_solicitado || 0}<br>
       <b>Score:</b> ${data.score_credito ?? 'N/A'}<br>
       <b>Motivo:</b> ${data.motivo || 'N/A'}
@@ -383,13 +390,13 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
     </div>
   `;
 
-      marker.bindPopup(popupContent);
+  marker.bindPopup(popupContent);
 
-      listaMarcadores.push({
-        instanciaMarker: marker,
-        categoria: esBueno ? 'BUENO' : 'MALO'
-      });
-    }
+  listaMarcadores.push({
+    instanciaMarker: marker,
+    categoria: calificacion || 'MALO'
+  });
+}
 
     async function cargarClientes() {
       // Limpiar marcadores previos si existen
