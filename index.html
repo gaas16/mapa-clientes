@@ -370,17 +370,18 @@
       const icono = esBueno ? greenIcon : redIcon;
 
       const marker = L.marker([data.lat, data.lng], { icon: icono }).addTo(map);
-const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion}:'';
-      
-      const popupContent = `
-        <div style="font-size:13px; line-height:1.4;">
-          <b style="text-transform:uppercase;">${data.nombre || 'Cliente sin nombre'}</b><br>
-          <b>Estado:</b> <span style="color:${esBueno ? 'green' : 'red'}; font-weight:bold;">${data.calificacion || 'N/A'}</span><br>
-          <b>Monto solicitado:</b> $${data.monto_solicitado || 0}<br>
-          <b>Score:</b> ${data.score_credito ?? 'N/A'}<br>
-          <b>Motivo:</b> ${data.motivo || 'N/A'}${direccionTexto}
-        </div>
-      `;
+const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion}` : '';
+
+  const popupContent = `
+    <div style="font-size:13px; line-height:1.4;">
+      <b style="text-transform:uppercase;">${data.nombre || 'Cliente sin nombre'}</b><br>
+      <b>Estado:</b> <span style="color:${esBueno ? 'green' : 'red'}; font-weight:bold;">${data.calificacion}</span><br>
+      <b>Monto solicitado:</b> $${data.monto_solicitado || 0}<br>
+      <b>Score:</b> ${data.score_credito ?? 'N/A'}<br>
+      <b>Motivo:</b> ${data.motivo || 'N/A'}
+      ${direccionTexto}
+    </div>
+  `;
 
       marker.bindPopup(popupContent);
 
