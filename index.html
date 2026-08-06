@@ -377,7 +377,7 @@ function agregarMarcadorAlMapa(data) {
   const icono = (calificacion === 'BUENO') ? greenIcon : redIcon;
 
   const marker = L.marker([data.lat, data.lng], { icon: icono }).addTo(map);
- const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion}` : '';
+const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion}` : '';
 
   const popupContent = `
     <div style="font-size:13px; line-height:1.4;">
