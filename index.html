@@ -389,7 +389,7 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
       <b>Motivo:</b> ${data.motivo || 'N/A'}
       ${direccionTexto}
       <br><br>
-   <button onclick="eliminarCliente('${data.id || doc.id}')" style="background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px; margin-top: 8px;">
+   <button onclick="eliminarCliente('${data.id}')" style="background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px; margin-top: 8px;">
   🗑️ Eliminar Cliente (Admin)
 </button>
     </div>
@@ -403,8 +403,12 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
   });
 }
     async function eliminarCliente(id) {
-  const CLAVE_ADMIN = "1098"; // Cambia esta contraseña por la que tú quieras
+  if (!id) {
+    alert("❌ Error: No se encontró el ID del cliente.");
+    return;
+  }
 
+  const CLAVE_ADMIN = "1098";
   const passwordIngresada = prompt("⚠️ Acción protegida\nIngresa la contraseña de administrador para eliminar:");
 
   if (passwordIngresada === null) return;
@@ -416,12 +420,12 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
 
   if (confirm("¿Estás seguro de que deseas eliminar este cliente del mapa?")) {
     try {
-      await db.collection("clientes").doc(id).delete();
+      await deleteDoc(doc(db, "clientes", id));
       alert("✅ Cliente eliminado con éxito");
       location.reload();
     } catch (error) {
       console.error("Error al eliminar cliente:", error);
-      alert("Hubo un error al intentar eliminar el cliente.");
+      alert("Hubo un error al intentar eliminar el cliente: " + error.message);
     }
   }
 }
@@ -433,7 +437,7 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
 
       const querySnapshot = await getDocs(collection(db, "clientes"));
       querySnapshot.forEach((doc) => {
-        const data = doc.data();
+        const data = doc.data();data.id = doc.id;
         if (data.lat && data.lng) {
           agregarMarcadorAlMapa(data);
         }
@@ -464,14 +468,15 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
         lng: coordenadasTemp.lng
       };
 
-      try {
-        await addDoc(collection(db, "clientes"), nuevoCliente);
-        agregarMarcadorAlMapa(nuevoCliente);
-        cerrarModal();
-      } catch (error) {
-        alert("Error al guardar: " + error.message);
-      }
-    };
+     try {
+    const docRef = await addDoc(collection(db, "clientes"), nuevoCliente);
+    nuevoCliente.id = docRef.id; // Asigna el ID recién generado por Firebase
+    agregarMarcadorAlMapa(nuevoCliente);
+    cerrarModal();
+  } catch (error) {
+    alert("Error al guardar: " + error.message);
+  }
+};
 
     window.cerrarModal = function() {
       document.getElementById('modalForm').style.display = 'none';
