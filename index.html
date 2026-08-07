@@ -389,7 +389,7 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
       <b>Motivo:</b> ${data.motivo || 'N/A'}
       ${direccionTexto}
       <br><br>
-   <button onclick="eliminarCliente('${data.id}')" style="background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px; margin-top: 8px;">
+  <button onclick="event.stopPropagation(); eliminarCliente('${data.id}')" style="background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px; margin-top: 8px;">
   🗑️ Eliminar Cliente (Admin)
 </button>
     </div>
@@ -402,7 +402,7 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
     categoria: calificacion || 'MALO'
   });
 }
-    async function eliminarCliente(id) {
+    window.eliminarCliente = async function (id) {
   if (!id) {
     alert("❌ Error: No se encontró el ID del cliente.");
     return;
@@ -420,7 +420,7 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
 
   if (confirm("¿Estás seguro de que deseas eliminar este cliente del mapa?")) {
     try {
-      await deleteDoc(doc(db, "clientes", id));
+      await deleteDoc(doc(db, "clientes", id.trim()));
       alert("✅ Cliente eliminado con éxito");
       location.reload();
     } catch (error) {
@@ -428,7 +428,7 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
       alert("Hubo un error al intentar eliminar el cliente: " + error.message);
     }
   }
-}
+};
 
     async function cargarClientes() {
       // Limpiar marcadores previos si existen
