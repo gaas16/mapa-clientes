@@ -388,6 +388,10 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
       <b>Score:</b> ${data.score_credito ?? 'N/A'}<br>
       <b>Motivo:</b> ${data.motivo || 'N/A'}
       ${direccionTexto}
+      <br><br>
+    <button onclick="eliminarCliente('${doc.id}')" style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px;">
+      🗑️ Eliminar Cliente (Admin)
+    </button>
     </div>
   `;
 
@@ -397,6 +401,29 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
     instanciaMarker: marker,
     categoria: calificacion || 'MALO'
   });
+}
+    async function eliminarCliente(id) {
+  const CLAVE_ADMIN = "1098"; // Cambia esta contraseña por la que tú quieras
+
+  const passwordIngresada = prompt("⚠️ Acción protegida\nIngresa la contraseña de administrador para eliminar:");
+
+  if (passwordIngresada === null) return;
+
+  if (passwordIngresada !== CLAVE_ADMIN) {
+    alert("❌ Contraseña incorrecta. No tienes permiso para eliminar.");
+    return;
+  }
+
+  if (confirm("¿Estás seguro de que deseas eliminar este cliente del mapa?")) {
+    try {
+      await db.collection("clientes").doc(id).delete();
+      alert("✅ Cliente eliminado con éxito");
+      location.reload();
+    } catch (error) {
+      console.error("Error al eliminar cliente:", error);
+      alert("Hubo un error al intentar eliminar el cliente.");
+    }
+  }
 }
 
     async function cargarClientes() {
