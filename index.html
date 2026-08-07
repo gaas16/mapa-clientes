@@ -389,9 +389,9 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
       <b>Motivo:</b> ${data.motivo || 'N/A'}
       ${direccionTexto}
       <br><br>
-   <button onclick="eliminarCliente('${data.id}')" style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px;">
+   <button onclick="eliminarCliente('${data.id || doc.id}')" style="background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px; margin-top: 8px;">
   🗑️ Eliminar Cliente (Admin)
-    </button>
+</button>
     </div>
   `;
 
