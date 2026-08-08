@@ -249,7 +249,7 @@
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+   import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { 
       getAuth, 
       signInWithEmailAndPassword, 
@@ -297,40 +297,70 @@
     });
 
     // Control de Estado de Autenticación
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('map').style.display = 'block';
-        if (!map) inicializarMapa();
-        cargarClientes();
-      } else {
-        document.getElementById('auth-screen').style.display = 'flex';
-        document.getElementById('map').style.display = 'none';
-      }
-    });
+   onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    try {
+      // Validar si es la última sesión iniciada
+      const docSnap = await getDoc(doc(db, "sesiones_activas", user.uid));
+      const tokenBD = docSnap.exists() ? docSnap.data().token : null;
+      const tokenLocal = localStorage.getItem("tokenSesion");
 
-    // Funciones Autenticación
-    window.iniciarSesion = async function() {
-      const email = document.getElementById('authEmail').value;
-      const pass = document.getElementById('authPassword').value;
-      mostrarError("");
-      try {
-        await signInWithEmailAndPassword(auth, email, pass);
-      } catch (err) {
-        mostrarError("Error de acceso: " + err.message);
+      if (tokenBD && tokenLocal !== tokenBD) {
+        alert("⚠️ Se ha iniciado sesión desde otro dispositivo. Tu sesión en este equipo ha sido cerrada.");
+        await signOut(auth);
+        return;
       }
-    };
 
-    window.registrarse = async function() {
-      const email = document.getElementById('authEmail').value;
-      const pass = document.getElementById('authPassword').value;
-      mostrarError("");
-      try {
-        await createUserWithEmailAndPassword(auth, email, pass);
-      } catch (err) {
-        mostrarError("Error en registro: " + err.message);
-      }
-    };
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('map').style.display = 'block';
+      if (!map) inicializarMapa();
+      cargarClientes();
+
+    } catch (error) {
+      console.error("Error verificando sesión:", error);
+    }
+  } else {
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('map').style.display = 'none';
+  }
+});
+
+   // Funciones Autenticación
+window.iniciarSesion = async function() {
+  const email = document.getElementById('authEmail').value;
+  const pass = document.getElementById('authPassword').value;
+  mostrarError("");
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+    const user = userCredential.user;
+
+    // Crear token único de sesión
+    const nuevoTokenSesion = Date.now().toString();
+    await setDoc(doc(db, "sesiones_activas", user.uid), { token: nuevoTokenSesion });
+    localStorage.setItem("tokenSesion", nuevoTokenSesion);
+
+  } catch (err) {
+    mostrarError("Error de acceso: " + err.message);
+  }
+};
+
+window.registrarse = async function() {
+  const email = document.getElementById('authEmail').value;
+  const pass = document.getElementById('authPassword').value;
+  mostrarError("");
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+    const user = userCredential.user;
+
+    // Crear token único de sesión
+    const nuevoTokenSesion = Date.now().toString();
+    await setDoc(doc(db, "sesiones_activas", user.uid), { token: nuevoTokenSesion });
+    localStorage.setItem("tokenSesion", nuevoTokenSesion);
+
+  } catch (err) {
+    mostrarError("Error en registro: " + err.message);
+  }
+};
 
     window.cerrarSesion = function() {
       signOut(auth);
