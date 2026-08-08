@@ -297,15 +297,16 @@
     });
 
     // Control de Estado de Autenticación
-   onAuthStateChanged(auth, async (user) => {
+  onAuthStateChanged(auth, async (user) => {
   if (user) {
     try {
-      // Validar si es la última sesión iniciada
       const docSnap = await getDoc(doc(db, "sesiones_activas", user.uid));
       const tokenBD = docSnap.exists() ? docSnap.data().token : null;
       const tokenLocal = localStorage.getItem("tokenSesion");
 
-      if (tokenBD && tokenLocal !== tokenBD) {
+      // Si existe un token registrado y no coincide con este dispositivo
+      if (tokenBD && tokenLocal && tokenLocal !== tokenBD) {
+        localStorage.removeItem("tokenSesion"); // Limpiar token guardado
         alert("⚠️ Se ha iniciado sesión desde otro dispositivo. Tu sesión en este equipo ha sido cerrada.");
         await signOut(auth);
         return;
@@ -320,6 +321,7 @@
       console.error("Error verificando sesión:", error);
     }
   } else {
+    localStorage.removeItem("tokenSesion");
     document.getElementById('auth-screen').style.display = 'flex';
     document.getElementById('map').style.display = 'none';
   }
