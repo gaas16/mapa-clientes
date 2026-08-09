@@ -242,6 +242,47 @@
     </div>
   </div>
 
+  <!-- Modal Formulario Editar Cliente (Solo Admin) -->
+<div class="modal-overlay" id="modalEditForm">
+  <div class="modal-content">
+    <h3>✏️ Editar Cliente (Admin)</h3>
+    <input type="hidden" id="editClienteId">
+    
+    <div class="form-group">
+      <label>Nombre del Cliente</label>
+      <input type="text" id="editNombre">
+    </div>
+    <div class="form-group">
+      <label>Dirección</label>
+      <input type="text" id="editDireccion">
+    </div>
+    <div class="form-group">
+      <label>Calificación</label>
+      <select id="editCalificacion">
+        <option value="BUENO">BUENO (Verde)</option>
+        <option value="REGULAR">REGULAR (Naranja)</option>
+        <option value="MALO">MALO (Rojo)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Monto Solicitado ($)</label>
+      <input type="number" id="editMonto">
+    </div>
+    <div class="form-group">
+      <label>Score Crédito</label>
+      <input type="number" id="editScore">
+    </div>
+    <div class="form-group">
+      <label>Motivo / Observación</label>
+      <input type="text" id="editMotivo">
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="cerrarModalEdit()">Cancelar</button>
+      <button class="btn-save" onclick="guardarCambiosCliente()">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+  
   <!-- Leaflet JS & Geocoder -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
@@ -249,7 +290,7 @@
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-   import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+   import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { 
       getAuth, 
       signInWithEmailAndPassword, 
@@ -400,17 +441,15 @@ window.registrarse = async function() {
 
 function agregarMarcadorAlMapa(data) {
   const calificacion = (data.calificacion || "").toUpperCase();
-
-  // Definir color según calificación
   let colorEstado = 'red';
   if (calificacion === 'BUENO') colorEstado = 'green';
   if (calificacion === 'REGULAR') colorEstado = 'orange';
 
-  // Definir icono según calificación
   const icono = (calificacion === 'BUENO') ? greenIcon : redIcon;
-
   const marker = L.marker([data.lat, data.lng], { icon: icono }).addTo(map);
-const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion}` : '';
+  const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion}` : '';
+
+  const dataJson = JSON.stringify(data).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
 
   const popupContent = `
     <div style="font-size:13px; line-height:1.4;">
@@ -421,18 +460,16 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
       <b>Motivo:</b> ${data.motivo || 'N/A'}
       ${direccionTexto}
       <br><br>
-  <button onclick="event.stopPropagation(); eliminarCliente('${data.id}')" style="background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px; margin-top: 8px;">
-  🗑️ Eliminar Cliente (Admin)
-</button>
+      <button onclick='event.stopPropagation(); abrirModalEditarProtected(${dataJson})' style="background-color: #f39c12; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px; margin-bottom: 6px;">
+        ✏️ Editar Cliente (Admin)
+      </button>
+      <button onclick="event.stopPropagation(); eliminarCliente('${data.id}')" style="background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px;">
+        🗑️ Eliminar Cliente (Admin)
+      </button>
     </div>
   `;
-
   marker.bindPopup(popupContent);
-
-  listaMarcadores.push({
-    instanciaMarker: marker,
-    categoria: calificacion || 'MALO'
-  });
+  listaMarcadores.push({instanciaMarker: marker, categoria: calificacion || 'MALO' });
 }
     window.eliminarCliente = async function (id) {
   if (!id) {
@@ -528,6 +565,58 @@ const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion
         }
       });
     };
+    // Abrir el modal solo con contraseña de administrador (1098)
+window.abrirModalEditarProtected = function(cliente) {
+  const CLAVE_ADMIN = "1098";
+  const passwordIngresada = prompt("⚠️ Acción protegida\nIngresa la contraseña de administrador para editar:");
+
+  if (passwordIngresada === null) return;
+  if (passwordIngresada !== CLAVE_ADMIN) {
+    alert("❌ Contraseña incorrecta. No tienes permiso para editar.");
+    return;
+  }
+
+  document.getElementById('editClienteId').value = cliente.id;
+  document.getElementById('editNombre').value = cliente.nombre || '';
+  document.getElementById('editDireccion').value = cliente.direccion || '';
+  document.getElementById('editCalificacion').value = cliente.calificacion || 'BUENO';
+  document.getElementById('editMonto').value = cliente.monto_solicitado || 0;
+  document.getElementById('editScore').value = cliente.score_credito || 0;
+  document.getElementById('editMotivo').value = cliente.motivo || '';
+  
+  document.getElementById('modalEditForm').style.display = 'flex';
+};
+
+window.cerrarModalEdit = function() {
+  document.getElementById('modalEditForm').style.display = 'none';
+};
+
+window.guardarCambiosCliente = async function() {
+  const id = document.getElementById('editClienteId').value;
+  if (!id) {
+    alert("Error: No se encontró el ID del cliente.");
+    return;
+  }
+
+  const datosActualizados = {
+    nombre: document.getElementById('editNombre').value.trim(),
+    direccion: document.getElementById('editDireccion').value.trim(),
+    calificacion: document.getElementById('editCalificacion').value,
+    monto_solicitado: parseFloat(document.getElementById('editMonto').value) || 0,
+    score_credito: parseInt(document.getElementById('editScore').value) || 0,
+    motivo: document.getElementById('editMotivo').value.trim()
+  };
+
+  try {
+    await updateDoc(doc(db, "clientes", id), datosActualizados);
+    alert("✅ Cliente actualizado con éxito");
+    cerrarModalEdit();
+    cargarClientes();
+  } catch (error) {
+    console.error("Error al actualizar cliente:", error);
+    alert("Hubo un error al guardar los cambios: " + error.message);
+  }
+};
   </script>
 </body>
 </html>
