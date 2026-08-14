@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mapa de Clientes - Grupo Privado</title>
   
   <!-- Leaflet CSS -->
@@ -10,7 +11,13 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
   
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; }
+    body, html { 
+      margin: 0; 
+      padding: 0; 
+      height: 100%; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: #f4f6f9; 
+    }
     
     /* Pantalla de Login / Registro */
     #auth-screen {
@@ -66,47 +73,60 @@
     /* Contenedor del Mapa */
     #map { height: 100vh; width: 100%; position: relative; display: none; }
     
-    /* Panel Flotante del Mapa */
+    /* Panel Flotante del Mapa / Adaptable a Móviles */
     .filter-container {
       position: absolute;
-      top: 15px;
-      right: 15px;
+      top: 10px;
+      right: 10px;
+      left: 10px;
+      max-width: 450px;
+      margin: 0 auto;
       z-index: 1000;
       background: rgba(255, 255, 255, 0.95);
-      padding: 10px 15px;
+      padding: 8px 12px;
       border-radius: 8px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
       display: flex;
-      gap: 8px;
+      gap: 6px;
       align-items: center;
+      justify-content: space-between;
+      overflow-x: auto;
     }
 
     .filter-btn {
       border: none;
-      padding: 8px 12px;
+      padding: 8px 10px;
       border-radius: 20px;
       font-weight: bold;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
       color: white;
+      white-space: nowrap;
+      flex: 1;
+      text-align: center;
     }
 
     .btn-all { background-color: #2c3e50; }
     .btn-bueno { background-color: #2ecc71; }
+    .btn-regular { background-color: #e67e22; }
     .btn-malo { background-color: #e74c3c; }
     .btn-logout { background-color: #7f8c8d; }
 
     .instruction-banner {
       position: absolute;
       bottom: 20px;
-      left: 15px;
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 1000;
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(0, 0, 0, 0.8);
       color: white;
       padding: 8px 15px;
       border-radius: 20px;
-      font-size: 13px;
+      font-size: 12px;
       pointer-events: none;
+      text-align: center;
+      width: 80%;
+      max-width: 320px;
     }
 
     /* Modal Formulario */
@@ -122,13 +142,16 @@
 
     .modal-content {
       background: white;
-      padding: 25px;
+      padding: 20px;
       border-radius: 12px;
-      width: 320px;
+      width: 90%;
+      max-width: 340px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      max-height: 90vh;
+      overflow-y: auto;
     }
 
-    .modal-content h3 { margin-top: 0; color: #333; margin-bottom: 15px; }
+    .modal-content h3 { margin-top: 0; color: #333; margin-bottom: 15px; font-size: 18px; }
 
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; }
@@ -144,23 +167,23 @@
     .form-actions { display: flex; gap: 10px; margin-top: 20px; }
     .btn-save { background: #27ae60; color: white; border: none; padding: 10px; border-radius: 6px; width: 50%; font-weight: bold; cursor: pointer; }
     .btn-cancel { background: #95a5a6; color: white; border: none; padding: 10px; border-radius: 6px; width: 50%; font-weight: bold; cursor: pointer; }
+
     /* Ajuste de tamaño para el cuadro del cliente en móviles */
-  .leaflet-popup-content-wrapper {
-    padding: 12px !important;
-    border-radius: 12px !important;
-  }
-  .leaflet-popup-content {
-    font-size: 15px !important;
-    line-height: 1.5 !important;
-    margin: 10px 12px !important;
-    min-width: 220px !important;
-  }
-  .leaflet-popup-content b,
-  .leaflet-popup-content strong {
-    font-size: 16px !important;
-    display: block;
-    margin-bottom: 5px;
-  }
+    .leaflet-popup-content-wrapper {
+      padding: 10px !important;
+      border-radius: 12px !important;
+    }
+    .leaflet-popup-content {
+      font-size: 13px !important;
+      line-height: 1.4 !important;
+      margin: 8px 10px !important;
+      min-width: 200px !important;
+    }
+    .leaflet-popup-content b,
+    .leaflet-popup-content strong {
+      font-size: 14px !important;
+      display: inline-block;
+    }
   </style>
 </head>
 <body>
@@ -181,18 +204,18 @@
 
   <!-- Contenedor del Mapa -->
   <div id="map">
-    <!-- Panel Control Superior -->
+    <!-- Panel Control Superior con Filtros -->
     <div class="filter-container">
-      <span style="font-size:12px; font-weight:bold; color:#555;">Filtrar:</span>
       <button class="filter-btn btn-all" onclick="filtrarMapa('TODOS')">Todos</button>
       <button class="filter-btn btn-bueno" onclick="filtrarMapa('BUENO')">Buenos</button>
+      <button class="filter-btn btn-regular" onclick="filtrarMapa('REGULAR')">Regulares</button>
       <button class="filter-btn btn-malo" onclick="filtrarMapa('MALO')">Malos</button>
       <button class="filter-btn btn-logout" onclick="cerrarSesion()">Salir</button>
     </div>
 
     <!-- Instrucción visual -->
     <div class="instruction-banner">
-      🔍 Busca la dirección o haz <b>doble clic</b> para agregar un cliente
+      🔍 Busca dirección o haz <b>doble clic</b> para agregar cliente
     </div>
   </div>
 
@@ -207,17 +230,17 @@
       </div>
 
       <div class="form-group">
-    <label>Dirección</label>
-    <input type="text" id="inputDireccion" placeholder="Ej: Av. Boqueirão, 1947">
-</div>
+        <label>Dirección</label>
+        <input type="text" id="inputDireccion" placeholder="Ej: Av. Boqueirão, 1947">
+      </div>
       
       <div class="form-group">
-       <label>Calificación</label>
-       <select id="inputCalificacion">
-       <option value="BUENO">BUENO (Verde)</option>
-       <option value="REGULAR">REGULAR (Naranja)</option>
-       <option value="MALO">MALO (Rojo)</option>
-       </select>
+        <label>Calificación</label>
+        <select id="inputCalificacion">
+          <option value="BUENO">BUENO (Verde)</option>
+          <option value="REGULAR">REGULAR (Naranja)</option>
+          <option value="MALO">MALO (Rojo)</option>
+        </select>
       </div>
 
       <div class="form-group">
@@ -243,45 +266,45 @@
   </div>
 
   <!-- Modal Formulario Editar Cliente (Solo Admin) -->
-<div class="modal-overlay" id="modalEditForm">
-  <div class="modal-content">
-    <h3>✏️ Editar Cliente (Admin)</h3>
-    <input type="hidden" id="editClienteId">
-    
-    <div class="form-group">
-      <label>Nombre del Cliente</label>
-      <input type="text" id="editNombre">
-    </div>
-    <div class="form-group">
-      <label>Dirección</label>
-      <input type="text" id="editDireccion">
-    </div>
-    <div class="form-group">
-      <label>Calificación</label>
-      <select id="editCalificacion">
-        <option value="BUENO">BUENO (Verde)</option>
-        <option value="REGULAR">REGULAR (Naranja)</option>
-        <option value="MALO">MALO (Rojo)</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Monto Solicitado ($)</label>
-      <input type="number" id="editMonto">
-    </div>
-    <div class="form-group">
-      <label>Score Crédito</label>
-      <input type="number" id="editScore">
-    </div>
-    <div class="form-group">
-      <label>Motivo / Observación</label>
-      <input type="text" id="editMotivo">
-    </div>
-    <div class="form-actions">
-      <button class="btn-cancel" onclick="cerrarModalEdit()">Cancelar</button>
-      <button class="btn-save" onclick="guardarCambiosCliente()">Guardar Cambios</button>
+  <div class="modal-overlay" id="modalEditForm">
+    <div class="modal-content">
+      <h3>✏️ Editar Cliente (Admin)</h3>
+      <input type="hidden" id="editClienteId">
+      
+      <div class="form-group">
+        <label>Nombre del Cliente</label>
+        <input type="text" id="editNombre">
+      </div>
+      <div class="form-group">
+        <label>Dirección</label>
+        <input type="text" id="editDireccion">
+      </div>
+      <div class="form-group">
+        <label>Calificación</label>
+        <select id="editCalificacion">
+          <option value="BUENO">BUENO (Verde)</option>
+          <option value="REGULAR">REGULAR (Naranja)</option>
+          <option value="MALO">MALO (Rojo)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Monto Solicitado ($)</label>
+        <input type="number" id="editMonto">
+      </div>
+      <div class="form-group">
+        <label>Score Crédito</label>
+        <input type="number" id="editScore">
+      </div>
+      <div class="form-group">
+        <label>Motivo / Observación</label>
+        <input type="text" id="editMotivo">
+      </div>
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="cerrarModalEdit()">Cancelar</button>
+        <button class="btn-save" onclick="guardarCambiosCliente()">Guardar Cambios</button>
+      </div>
     </div>
   </div>
-</div>
   
   <!-- Leaflet JS & Geocoder -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -290,7 +313,7 @@
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-   import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { 
       getAuth, 
       signInWithEmailAndPassword, 
@@ -318,9 +341,18 @@
     let listaMarcadores = [];
     let coordenadasTemp = null;
 
-    // Iconos Leaflet
+    // Iconos Leaflet (Verde, Naranja y Rojo)
     const greenIcon = new L.Icon({
       iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+
+    const orangeIcon = new L.Icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
       iconSize: [25, 41],
       iconAnchor: [12, 41],
@@ -338,72 +370,69 @@
     });
 
     // Control de Estado de Autenticación
-  onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    try {
-      const docSnap = await getDoc(doc(db, "sesiones_activas", user.uid));
-      const tokenBD = docSnap.exists() ? docSnap.data().token : null;
-      const tokenLocal = localStorage.getItem("tokenSesion");
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const docSnap = await getDoc(doc(db, "sesiones_activas", user.uid));
+          const tokenBD = docSnap.exists() ? docSnap.data().token : null;
+          const tokenLocal = localStorage.getItem("tokenSesion");
 
-      // Si existe un token registrado y no coincide con este dispositivo
-      if (tokenBD && tokenLocal && tokenLocal !== tokenBD) {
-        localStorage.removeItem("tokenSesion"); // Limpiar token guardado
-        alert("⚠️ Se ha iniciado sesión desde otro dispositivo. Tu sesión en este equipo ha sido cerrada.");
-        await signOut(auth);
-        return;
+          if (tokenBD && tokenLocal && tokenLocal !== tokenBD) {
+            localStorage.removeItem("tokenSesion");
+            alert("⚠️ Se ha iniciado sesión desde otro dispositivo. Tu sesión en este equipo ha sido cerrada.");
+            await signOut(auth);
+            return;
+          }
+
+          document.getElementById('auth-screen').style.display = 'none';
+          document.getElementById('map').style.display = 'block';
+          if (!map) inicializarMapa();
+          cargarClientes();
+
+        } catch (error) {
+          console.error("Error verificando sesión:", error);
+        }
+      } else {
+        localStorage.removeItem("tokenSesion");
+        document.getElementById('auth-screen').style.display = 'flex';
+        document.getElementById('map').style.display = 'none';
       }
+    });
 
-      document.getElementById('auth-screen').style.display = 'none';
-      document.getElementById('map').style.display = 'block';
-      if (!map) inicializarMapa();
-      cargarClientes();
+    // Funciones Autenticación
+    window.iniciarSesion = async function() {
+      const email = document.getElementById('authEmail').value;
+      const pass = document.getElementById('authPassword').value;
+      mostrarError("");
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+        const user = userCredential.user;
 
-    } catch (error) {
-      console.error("Error verificando sesión:", error);
-    }
-  } else {
-    localStorage.removeItem("tokenSesion");
-    document.getElementById('auth-screen').style.display = 'flex';
-    document.getElementById('map').style.display = 'none';
-  }
-});
+        const nuevoTokenSesion = Date.now().toString();
+        await setDoc(doc(db, "sesiones_activas", user.uid), { token: nuevoTokenSesion });
+        localStorage.setItem("tokenSesion", nuevoTokenSesion);
 
-   // Funciones Autenticación
-window.iniciarSesion = async function() {
-  const email = document.getElementById('authEmail').value;
-  const pass = document.getElementById('authPassword').value;
-  mostrarError("");
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-    const user = userCredential.user;
+      } catch (err) {
+        mostrarError("Error de acceso: " + err.message);
+      }
+    };
 
-    // Crear token único de sesión
-    const nuevoTokenSesion = Date.now().toString();
-    await setDoc(doc(db, "sesiones_activas", user.uid), { token: nuevoTokenSesion });
-    localStorage.setItem("tokenSesion", nuevoTokenSesion);
+    window.registrarse = async function() {
+      const email = document.getElementById('authEmail').value;
+      const pass = document.getElementById('authPassword').value;
+      mostrarError("");
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+        const user = userCredential.user;
 
-  } catch (err) {
-    mostrarError("Error de acceso: " + err.message);
-  }
-};
+        const nuevoTokenSesion = Date.now().toString();
+        await setDoc(doc(db, "sesiones_activas", user.uid), { token: nuevoTokenSesion });
+        localStorage.setItem("tokenSesion", nuevoTokenSesion);
 
-window.registrarse = async function() {
-  const email = document.getElementById('authEmail').value;
-  const pass = document.getElementById('authPassword').value;
-  mostrarError("");
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-    const user = userCredential.user;
-
-    // Crear token único de sesión
-    const nuevoTokenSesion = Date.now().toString();
-    await setDoc(doc(db, "sesiones_activas", user.uid), { token: nuevoTokenSesion });
-    localStorage.setItem("tokenSesion", nuevoTokenSesion);
-
-  } catch (err) {
-    mostrarError("Error en registro: " + err.message);
-  }
-};
+      } catch (err) {
+        mostrarError("Error en registro: " + err.message);
+      }
+    };
 
     window.cerrarSesion = function() {
       signOut(auth);
@@ -439,78 +468,89 @@ window.registrarse = async function() {
       });
     }
 
-function agregarMarcadorAlMapa(data) {
-  const calificacion = (data.calificacion || "").toUpperCase();
-  let colorEstado = 'red';
-  if (calificacion === 'BUENO') colorEstado = 'green';
-  if (calificacion === 'REGULAR') colorEstado = 'orange';
+    function agregarMarcadorAlMapa(data) {
+      const calificacion = (data.calificacion || "").toUpperCase();
+      let colorEstado = 'red';
+      let icono = redIcon;
 
-  const icono = (calificacion === 'BUENO') ? greenIcon : redIcon;
-  const marker = L.marker([data.lat, data.lng], { icon: icono }).addTo(map);
-  const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion}` : '';
+      if (calificacion === 'BUENO') {
+        colorEstado = 'green';
+        icono = greenIcon;
+      } else if (calificacion === 'REGULAR') {
+        colorEstado = 'orange';
+        icono = orangeIcon;
+      }
 
-  const dataJson = JSON.stringify(data).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+      const marker = L.marker([data.lat, data.lng], { icon: icono }).addTo(map);
+      const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion}` : '';
 
-  const popupContent = `
-    <div style="font-size:13px; line-height:1.4;">
-      <b style="text-transform:uppercase;">${data.nombre || 'Cliente sin nombre'}</b><br>
-      <b>Estado:</b> <span style="color:${colorEstado}; font-weight:bold;">${calificacion || 'N/A'}</span><br>
-      <b>Monto solicitado:</b> $${data.monto_solicitado || 0}<br>
-      <b>Score:</b> ${data.score_credito ?? 'N/A'}<br>
-      <b>Motivo:</b> ${data.motivo || 'N/A'}
-      ${direccionTexto}
-      <br><br>
-      <button onclick='event.stopPropagation(); abrirModalEditarProtected(${dataJson})' style="background-color: #f39c12; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px; margin-bottom: 6px;">
-        ✏️ Editar Cliente (Admin)
-      </button>
-      <button onclick="event.stopPropagation(); eliminarCliente('${data.id}')" style="background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px;">
-        🗑️ Eliminar Cliente (Admin)
-      </button>
-    </div>
-  `;
-  marker.bindPopup(popupContent);
-  listaMarcadores.push({instanciaMarker: marker, categoria: calificacion || 'MALO' });
-}
-    window.eliminarCliente = async function (id) {
-  if (!id) {
-    alert("❌ Error: No se encontró el ID del cliente.");
-    return;
-  }
+      const dataJson = JSON.stringify(data).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
 
-  const CLAVE_ADMIN = "1098";
-  const passwordIngresada = prompt("⚠️ Acción protegida\nIngresa la contraseña de administrador para eliminar:");
-
-  if (passwordIngresada === null) return;
-
-  if (passwordIngresada !== CLAVE_ADMIN) {
-    alert("❌ Contraseña incorrecta. No tienes permiso para eliminar.");
-    return;
-  }
-
-  if (confirm("¿Estás seguro de que deseas eliminar este cliente del mapa?")) {
-    try {
-      await deleteDoc(doc(db, "clientes", id.trim()));
-      alert("✅ Cliente eliminado con éxito");
-      location.reload();
-    } catch (error) {
-      console.error("Error al eliminar cliente:", error);
-      alert("Hubo un error al intentar eliminar el cliente: " + error.message);
+      const popupContent = `
+        <div style="font-size:13px; line-height:1.4;">
+          <b style="text-transform:uppercase;">${data.nombre || 'Cliente sin nombre'}</b><br>
+          <b>Estado:</b> <span style="color:${colorEstado}; font-weight:bold;">${calificacion || 'N/A'}</span><br>
+          <b>Monto solicitado:</b> $${data.monto_solicitado || 0}<br>
+          <b>Score:</b> ${data.score_credito ?? 'N/A'}<br>
+          <b>Motivo:</b> ${data.motivo || 'N/A'}
+          ${direccionTexto}
+          <br><br>
+          <button onclick='event.stopPropagation(); abrirModalEditarProtected(${dataJson})' style="background-color: #f39c12; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px; margin-bottom: 6px;">
+            ✏️ Editar Cliente (Admin)
+          </button>
+          <button onclick="event.stopPropagation(); eliminarCliente('${data.id}')" style="background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px;">
+            🗑️ Eliminar Cliente (Admin)
+          </button>
+        </div>
+      `;
+      marker.bindPopup(popupContent);
+      listaMarcadores.push({instanciaMarker: marker, categoria: calificacion || 'MALO' });
     }
-  }
-};
+
+    window.eliminarCliente = async function (id) {
+      if (!id) {
+        alert("❌ Error: No se encontró el ID del cliente.");
+        return;
+      }
+
+      const CLAVE_ADMIN = "1098";
+      const passwordIngresada = prompt("⚠️ Acción protegida\nIngresa la contraseña de administrador para eliminar:");
+
+      if (passwordIngresada === null) return;
+
+      if (passwordIngresada !== CLAVE_ADMIN) {
+        alert("❌ Contraseña incorrecta. No tienes permiso para eliminar.");
+        return;
+      }
+
+      if (confirm("¿Estás seguro de que deseas eliminar este cliente del mapa?")) {
+        try {
+          await deleteDoc(doc(db, "clientes", id.trim()));
+          alert("✅ Cliente eliminado con éxito");
+          cargarClientes();
+        } catch (error) {
+          console.error("Error al eliminar cliente:", error);
+          alert("Hubo un error al intentar eliminar el cliente: " + error.message);
+        }
+      }
+    };
 
     async function cargarClientes() {
-      // Limpiar marcadores previos si existen
       listaMarcadores.forEach(m => map.removeLayer(m.instanciaMarker));
       listaMarcadores = [];
 
-      const querySnapshot = await getDocs(collection(db, "clientes"));
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();data.id = doc.id;
-        if (data.lat && data.lng) {
-          agregarMarcadorAlMapa(data);
-        }
-      });
+      try {
+        const querySnapshot = await getDocs(collection(db, "clientes"));
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          data.id = doc.id;
+          if (data.lat && data.lng) {
+            agregarMarcadorAlMapa(data);
+          }
+        });
+      } catch (error) {
+        console.error("Error cargando clientes:", error);
+      }
     }
 
     window.guardarNuevoCliente = async function() {
@@ -537,15 +577,15 @@ function agregarMarcadorAlMapa(data) {
         lng: coordenadasTemp.lng
       };
 
-     try {
-    const docRef = await addDoc(collection(db, "clientes"), nuevoCliente);
-    nuevoCliente.id = docRef.id; // Asigna el ID recién generado por Firebase
-    agregarMarcadorAlMapa(nuevoCliente);
-    cerrarModal();
-  } catch (error) {
-    alert("Error al guardar: " + error.message);
-  }
-};
+      try {
+        const docRef = await addDoc(collection(db, "clientes"), nuevoCliente);
+        nuevoCliente.id = docRef.id;
+        agregarMarcadorAlMapa(nuevoCliente);
+        cerrarModal();
+      } catch (error) {
+        alert("Error al guardar: " + error.message);
+      }
+    };
 
     window.cerrarModal = function() {
       document.getElementById('modalForm').style.display = 'none';
@@ -559,64 +599,69 @@ function agregarMarcadorAlMapa(data) {
     window.filtrarMapa = function(tipo) {
       listaMarcadores.forEach(item => {
         if (tipo === 'TODOS' || item.categoria === tipo) {
-          map.addLayer(item.instanciaMarker);
+          if (!map.hasLayer(item.instanciaMarker)) {
+            map.addLayer(item.instanciaMarker);
+          }
         } else {
-          map.removeLayer(item.instanciaMarker);
+          if (map.hasLayer(item.instanciaMarker)) {
+            map.removeLayer(item.instanciaMarker);
+          }
         }
       });
     };
+
     // Abrir el modal solo con contraseña de administrador (1098)
-window.abrirModalEditarProtected = function(cliente) {
-  const CLAVE_ADMIN = "1098";
-  const passwordIngresada = prompt("⚠️ Acción protegida\nIngresa la contraseña de administrador para editar:");
+    window.abrirModalEditarProtected = function(cliente) {
+      const CLAVE_ADMIN = "1098";
+      const passwordIngresada = prompt("⚠️ Acción protegida\nIngresa la contraseña de administrador para editar:");
 
-  if (passwordIngresada === null) return;
-  if (passwordIngresada !== CLAVE_ADMIN) {
-    alert("❌ Contraseña incorrecta. No tienes permiso para editar.");
-    return;
-  }
+      if (passwordIngresada === null) return;
+      if (passwordIngresada !== CLAVE_ADMIN) {
+        alert("❌ Contraseña incorrecta. No tienes permiso para editar.");
+        return;
+      }
 
-  document.getElementById('editClienteId').value = cliente.id;
-  document.getElementById('editNombre').value = cliente.nombre || '';
-  document.getElementById('editDireccion').value = cliente.direccion || '';
-  document.getElementById('editCalificacion').value = cliente.calificacion || 'BUENO';
-  document.getElementById('editMonto').value = cliente.monto_solicitado || 0;
-  document.getElementById('editScore').value = cliente.score_credito || 0;
-  document.getElementById('editMotivo').value = cliente.motivo || '';
-  
-  document.getElementById('modalEditForm').style.display = 'flex';
-};
+      document.getElementById('editClienteId').value = cliente.id;
+      document.getElementById('editNombre').value = cliente.nombre || '';
+      document.getElementById('editDireccion').value = cliente.direccion || '';
+      document.getElementById('editCalificacion').value = cliente.calificacion || 'BUENO';
+      document.getElementById('editMonto').value = cliente.monto_solicitado || 0;
+      document.getElementById('editScore').value = cliente.score_credito || 0;
+      document.getElementById('editMotivo').value = cliente.motivo || '';
+      
+      document.getElementById('modalEditForm').style.display = 'flex';
+    };
 
-window.cerrarModalEdit = function() {
-  document.getElementById('modalEditForm').style.display = 'none';
-};
+    window.cerrarModalEdit = function() {
+      document.getElementById('modalEditForm').style.display = 'none';
+    };
 
-window.guardarCambiosCliente = async function() {
-  const id = document.getElementById('editClienteId').value;
-  if (!id) {
-    alert("Error: No se encontró el ID del cliente.");
-    return;
-  }
+    window.guardarCambiosCliente = async function() {
+      const id = document.getElementById('editClienteId').value;
+      if (!id) {
+        alert("Error: No se encontró el ID del cliente.");
+        return;
+      }
 
-  const datosActualizados = {
-    nombre: document.getElementById('editNombre').value.trim(),
-    direccion: document.getElementById('editDireccion').value.trim(),
-    calificacion: document.getElementById('editCalificacion').value,
-    monto_solicitado: parseFloat(document.getElementById('editMonto').value) || 0,
-    score_credito: parseInt(document.getElementById('editScore').value) || 0,
-    motivo: document.getElementById('editMotivo').value.trim()
-  };
+      const datosActualizados = {
+        nombre: document.getElementById('editNombre').value.trim(),
+        direccion: document.getElementById('editDireccion').value.trim(),
+        calificacion: document.getElementById('editCalificacion').value,
+        monto_solicitado: parseFloat(document.getElementById('editMonto').value) || 0,
+        score_credito: parseInt(document.getElementById('editScore').value) || 0,
+        motivo: document.getElementById('editMotivo').value.trim()
+      };
 
-  try {
-    await updateDoc(doc(db, "clientes", id), datosActualizados);
-    alert("✅ Cliente actualizado con éxito");
-    cerrarModalEdit();
-    cargarClientes();
-  } catch (error) {
-    console.error("Error al actualizar cliente:", error);
-    alert("Hubo un error al guardar los cambios: " + error.message);
-  }
-};
+      try {
+        await updateDoc(doc(db, "clientes", id), datosActualizados);
+        alert("✅ Cliente actualizado con éxito");
+        cerrarModalEdit();
+        cargarClientes();
+      } catch (error) {
+        console.error("Error al actualizar cliente:", error);
+        alert("Hubo un error al guardar los cambios: " + error.message);
+      }
+    };
   </script>
 </body>
 </html>
