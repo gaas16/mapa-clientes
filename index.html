@@ -168,7 +168,7 @@
     .btn-save { background: #27ae60; color: white; border: none; padding: 10px; border-radius: 6px; width: 50%; font-weight: bold; cursor: pointer; }
     .btn-cancel { background: #95a5a6; color: white; border: none; padding: 10px; border-radius: 6px; width: 50%; font-weight: bold; cursor: pointer; }
 
-    /* Ajuste de tamaño para el cuadro del cliente en móviles */
+    /* Estilos PopUp Mapa */
     .leaflet-popup-content-wrapper {
       padding: 10px !important;
       border-radius: 12px !important;
@@ -177,12 +177,20 @@
       font-size: 13px !important;
       line-height: 1.4 !important;
       margin: 8px 10px !important;
-      min-width: 200px !important;
+      min-width: 220px !important;
     }
     .leaflet-popup-content b,
     .leaflet-popup-content strong {
       font-size: 14px !important;
       display: inline-block;
+    }
+    .img-fachada {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid #ddd;
     }
   </style>
 </head>
@@ -258,9 +266,14 @@
         <input type="text" id="inputMotivo" placeholder="Ej: Pago puntual">
       </div>
 
+      <div class="form-group">
+        <label>Foto Fachada del Negocio</label>
+        <input type="file" id="inputFoto" accept="image/*">
+      </div>
+
       <div class="form-actions">
         <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn-save" onclick="guardarNuevoCliente()">Guardar</button>
+        <button class="btn-save" id="btnGuardar" onclick="guardarNuevoCliente()">Guardar</button>
       </div>
     </div>
   </div>
@@ -270,6 +283,7 @@
     <div class="modal-content">
       <h3>✏️ Editar Cliente (Admin)</h3>
       <input type="hidden" id="editClienteId">
+      <input type="hidden" id="editFotoUrlActual">
       
       <div class="form-group">
         <label>Nombre del Cliente</label>
@@ -299,9 +313,13 @@
         <label>Motivo / Observación</label>
         <input type="text" id="editMotivo">
       </div>
+      <div class="form-group">
+        <label>Actualizar / Subir Foto Fachada</label>
+        <input type="file" id="editFoto" accept="image/*">
+      </div>
       <div class="form-actions">
         <button class="btn-cancel" onclick="cerrarModalEdit()">Cancelar</button>
-        <button class="btn-save" onclick="guardarCambiosCliente()">Guardar Cambios</button>
+        <button class="btn-save" id="btnEditarGuardar" onclick="guardarCambiosCliente()">Guardar Cambios</button>
       </div>
     </div>
   </div>
@@ -332,6 +350,9 @@
       appId: "1:353134326446:web:0b9c9cb22c34627346333f",
       measurementId: "G-HNVLR8YOWE"
     };
+
+    // Clave API de ImgBB Gratis
+    const IMGBB_API_KEY = "53cb3b5f48ad867ea85a7d7af569ab02";
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -444,7 +465,7 @@
       errDiv.style.display = msg ? 'block' : 'none';
     }
 
-    // Inicializar Mapa Privado
+    // Inicializar Mapa
     function inicializarMapa() {
       map = L.map('map', { doubleClickZoom: false }).setView([-29.9189, -51.1781], 13);
 
@@ -483,11 +504,13 @@
 
       const marker = L.marker([data.lat, data.lng], { icon: icono }).addTo(map);
       const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion}` : '';
+      const fotoHtml = data.fotoUrl ? `<img src="${data.fotoUrl}" class="img-fachada" alt="Fachada" />` : '';
 
       const dataJson = JSON.stringify(data).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
 
       const popupContent = `
         <div style="font-size:13px; line-height:1.4;">
+          ${fotoHtml}
           <b style="text-transform:uppercase;">${data.nombre || 'Cliente sin nombre'}</b><br>
           <b>Estado:</b> <span style="color:${colorEstado}; font-weight:bold;">${calificacion || 'N/A'}</span><br>
           <b>Monto solicitado:</b> $${data.monto_solicitado || 0}<br>
@@ -553,6 +576,25 @@
       }
     }
 
+    // Subir imagen GRATIS a ImgBB
+    async function subirImagenImgBB(file) {
+      if (!file) return null;
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        return data.data.url;
+      } else {
+        throw new Error("Error al subir la imagen a ImgBB");
+      }
+    }
+
     window.guardarNuevoCliente = async function() {
       const nombre = document.getElementById('inputNombre').value.trim();
       const direccion = document.getElementById('inputDireccion').value.trim();
@@ -560,30 +602,44 @@
       const monto = parseFloat(document.getElementById('inputMonto').value) || 0;
       const score = parseInt(document.getElementById('inputScore').value) || 0;
       const motivo = document.getElementById('inputMotivo').value.trim();
+      const fotoFile = document.getElementById('inputFoto').files[0];
 
       if (!nombre) {
         alert("Por favor ingresa el nombre del cliente");
         return;
       }
 
-      const nuevoCliente = {
-        nombre: nombre,
-        direccion: direccion,
-        calificacion: calificacion,
-        monto_solicitado: monto,
-        score_credito: score,
-        motivo: motivo,
-        lat: coordenadasTemp.lat,
-        lng: coordenadasTemp.lng
-      };
+      const btnGuardar = document.getElementById('btnGuardar');
+      btnGuardar.disabled = true;
+      btnGuardar.innerText = "Subiendo foto y guardando...";
 
       try {
+        let fotoUrl = "";
+        if (fotoFile) {
+          fotoUrl = await subirImagenImgBB(fotoFile);
+        }
+
+        const nuevoCliente = {
+          nombre: nombre,
+          direccion: direccion,
+          calificacion: calificacion,
+          monto_solicitado: monto,
+          score_credito: score,
+          motivo: motivo,
+          fotoUrl: fotoUrl,
+          lat: coordenadasTemp.lat,
+          lng: coordenadasTemp.lng
+        };
+
         const docRef = await addDoc(collection(db, "clientes"), nuevoCliente);
         nuevoCliente.id = docRef.id;
         agregarMarcadorAlMapa(nuevoCliente);
         cerrarModal();
       } catch (error) {
         alert("Error al guardar: " + error.message);
+      } finally {
+        btnGuardar.disabled = false;
+        btnGuardar.innerText = "Guardar";
       }
     };
 
@@ -594,6 +650,7 @@
       document.getElementById('inputMonto').value = '';
       document.getElementById('inputScore').value = '0';
       document.getElementById('inputMotivo').value = '';
+      document.getElementById('inputFoto').value = '';
     };
 
     window.filtrarMapa = function(tipo) {
@@ -610,7 +667,6 @@
       });
     };
 
-    // Abrir el modal solo con contraseña de administrador (1098)
     window.abrirModalEditarProtected = function(cliente) {
       const CLAVE_ADMIN = "1098";
       const passwordIngresada = prompt("⚠️ Acción protegida\nIngresa la contraseña de administrador para editar:");
@@ -622,12 +678,14 @@
       }
 
       document.getElementById('editClienteId').value = cliente.id;
+      document.getElementById('editFotoUrlActual').value = cliente.fotoUrl || '';
       document.getElementById('editNombre').value = cliente.nombre || '';
       document.getElementById('editDireccion').value = cliente.direccion || '';
       document.getElementById('editCalificacion').value = cliente.calificacion || 'BUENO';
       document.getElementById('editMonto').value = cliente.monto_solicitado || 0;
       document.getElementById('editScore').value = cliente.score_credito || 0;
       document.getElementById('editMotivo').value = cliente.motivo || '';
+      document.getElementById('editFoto').value = '';
       
       document.getElementById('modalEditForm').style.display = 'flex';
     };
@@ -643,16 +701,28 @@
         return;
       }
 
-      const datosActualizados = {
-        nombre: document.getElementById('editNombre').value.trim(),
-        direccion: document.getElementById('editDireccion').value.trim(),
-        calificacion: document.getElementById('editCalificacion').value,
-        monto_solicitado: parseFloat(document.getElementById('editMonto').value) || 0,
-        score_credito: parseInt(document.getElementById('editScore').value) || 0,
-        motivo: document.getElementById('editMotivo').value.trim()
-      };
+      const btnEditar = document.getElementById('btnEditarGuardar');
+      btnEditar.disabled = true;
+      btnEditar.innerText = "Subiendo foto y guardando...";
 
       try {
+        const fotoNueva = document.getElementById('editFoto').files[0];
+        let fotoUrl = document.getElementById('editFotoUrlActual').value;
+
+        if (fotoNueva) {
+          fotoUrl = await subirImagenImgBB(fotoNueva);
+        }
+
+        const datosActualizados = {
+          nombre: document.getElementById('editNombre').value.trim(),
+          direccion: document.getElementById('editDireccion').value.trim(),
+          calificacion: document.getElementById('editCalificacion').value,
+          monto_solicitado: parseFloat(document.getElementById('editMonto').value) || 0,
+          score_credito: parseInt(document.getElementById('editScore').value) || 0,
+          motivo: document.getElementById('editMotivo').value.trim(),
+          fotoUrl: fotoUrl
+        };
+
         await updateDoc(doc(db, "clientes", id), datosActualizados);
         alert("✅ Cliente actualizado con éxito");
         cerrarModalEdit();
@@ -660,6 +730,9 @@
       } catch (error) {
         console.error("Error al actualizar cliente:", error);
         alert("Hubo un error al guardar los cambios: " + error.message);
+      } finally {
+        btnEditar.disabled = false;
+        btnEditar.innerText = "Guardar Cambios";
       }
     };
   </script>
