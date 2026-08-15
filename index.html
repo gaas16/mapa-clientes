@@ -177,7 +177,8 @@
       font-size: 13px !important;
       line-height: 1.4 !important;
       margin: 8px 10px !important;
-      min-width: 220px !important;
+      min-width: 240px !important;
+      max-width: 280px !important;
     }
     .leaflet-popup-content b,
     .leaflet-popup-content strong {
@@ -191,6 +192,46 @@
       border-radius: 8px;
       margin-bottom: 8px;
       border: 1px solid #ddd;
+    }
+
+    /* Seccion de Reseñas y Estrellas */
+    .reviews-section {
+      margin-top: 10px;
+      border-top: 1px solid #eee;
+      padding-top: 8px;
+    }
+    .star-rating {
+      color: #f1c40f;
+      font-size: 16px;
+    }
+    .review-item {
+      background: #f8f9fa;
+      padding: 6px 8px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 11px;
+      border-left: 3px solid #f1c40f;
+    }
+    .review-item strong { font-size: 11px !important; color: #2c3e50; }
+    .review-form select, .review-form textarea {
+      width: 100%;
+      padding: 6px;
+      font-size: 12px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      margin-bottom: 6px;
+      box-sizing: border-box;
+    }
+    .btn-review {
+      background: #27ae60;
+      color: white;
+      border: none;
+      padding: 6px;
+      width: 100%;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -331,7 +372,7 @@
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, getDoc, setDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { 
       getAuth, 
       signInWithEmailAndPassword, 
@@ -351,7 +392,6 @@
       measurementId: "G-HNVLR8YOWE"
     };
 
-    // Clave API de ImgBB Gratis
     const IMGBB_API_KEY = "53cb3b5f48ad867ea85a7d7af569ab02";
 
     const app = initializeApp(firebaseConfig);
@@ -361,8 +401,9 @@
     let map = null;
     let listaMarcadores = [];
     let coordenadasTemp = null;
+    let usuarioActual = null;
 
-    // Iconos Leaflet (Verde, Naranja y Rojo)
+    // Iconos Leaflet
     const greenIcon = new L.Icon({
       iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -393,6 +434,7 @@
     // Control de Estado de Autenticación
     onAuthStateChanged(auth, async (user) => {
       if (user) {
+        usuarioActual = user;
         try {
           const docSnap = await getDoc(doc(db, "sesiones_activas", user.uid));
           const tokenBD = docSnap.exists() ? docSnap.data().token : null;
@@ -414,13 +456,13 @@
           console.error("Error verificando sesión:", error);
         }
       } else {
+        usuarioActual = null;
         localStorage.removeItem("tokenSesion");
         document.getElementById('auth-screen').style.display = 'flex';
         document.getElementById('map').style.display = 'none';
       }
     });
 
-    // Funciones Autenticación
     window.iniciarSesion = async function() {
       const email = document.getElementById('authEmail').value;
       const pass = document.getElementById('authPassword').value;
@@ -465,7 +507,6 @@
       errDiv.style.display = msg ? 'block' : 'none';
     }
 
-    // Inicializar Mapa
     function inicializarMapa() {
       map = L.map('map', { doubleClickZoom: false }).setView([-29.9189, -51.1781], 13);
 
@@ -489,6 +530,17 @@
       });
     }
 
+    function calcularPromedioEstrellas(resenas = []) {
+      if (!resenas.length) return { promedio: 0, total: 0, estrellasHtml: "☆☆☆☆☆" };
+      const suma = resenas.reduce((acc, r) => acc + (r.estrellas || 0), 0);
+      const promedio = (suma / resenas.length).toFixed(1);
+      
+      const numEstrellas = Math.round(promedio);
+      const estrellasHtml = "★".repeat(numEstrellas) + "☆".repeat(5 - numEstrellas);
+
+      return { promedio, total: resenas.length, estrellasHtml };
+    }
+
     function agregarMarcadorAlMapa(data) {
       const calificacion = (data.calificacion || "").toUpperCase();
       let colorEstado = 'red';
@@ -506,18 +558,57 @@
       const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion}` : '';
       const fotoHtml = data.fotoUrl ? `<img src="${data.fotoUrl}" class="img-fachada" alt="Fachada" />` : '';
 
+      const resenas = data.resenas || [];
+      const infoEstrellas = calcularPromedioEstrellas(resenas);
+
+      let resenasHtml = resenas.slice(-3).reverse().map(r => `
+        <div class="review-item">
+          <strong>${r.usuario || 'Usuario'}:</strong> ${'★'.repeat(r.estrellas)}<br>
+          ${r.comentario}
+        </div>
+      `).join('');
+
+      if (!resenasHtml) {
+        resenasHtml = '<div style="font-size:11px; color:#777;">Sin comentarios aún.</div>';
+      }
+
       const dataJson = JSON.stringify(data).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
 
       const popupContent = `
         <div style="font-size:13px; line-height:1.4;">
           ${fotoHtml}
           <b style="text-transform:uppercase;">${data.nombre || 'Cliente sin nombre'}</b><br>
+          <div style="margin: 4px 0;">
+            <span class="star-rating">${infoEstrellas.estrellasHtml}</span> 
+            <b>${infoEstrellas.promedio}</b> (${infoEstrellas.total} resenas)
+          </div>
           <b>Estado:</b> <span style="color:${colorEstado}; font-weight:bold;">${calificacion || 'N/A'}</span><br>
           <b>Monto solicitado:</b> $${data.monto_solicitado || 0}<br>
           <b>Score:</b> ${data.score_credito ?? 'N/A'}<br>
           <b>Motivo:</b> ${data.motivo || 'N/A'}
           ${direccionTexto}
-          <br><br>
+          
+          <div class="reviews-section">
+            <b style="font-size:12px;">💬 Comentarios del equipo:</b>
+            <div style="max-height: 100px; overflow-y: auto; margin-top:5px;">
+              ${resenasHtml}
+            </div>
+            
+            <div class="review-form" style="margin-top:8px;">
+              <b style="font-size:11px;">Añadir Calificación:</b>
+              <select id="stars_${data.id}">
+                <option value="5">★★★★★ (5/5)</option>
+                <option value="4">★★★★☆ (4/5)</option>
+                <option value="3">★★★☆☆ (3/5)</option>
+                <option value="2">★★☆☆☆ (2/5)</option>
+                <option value="1">★☆☆☆☆ (1/5)</option>
+              </select>
+              <textarea id="comment_${data.id}" rows="2" placeholder="Escribe un comentario sobre este cliente..."></textarea>
+              <button class="btn-review" onclick="event.stopPropagation(); enviarCalificacion('${data.id}')">⭐ Guardar Opinión</button>
+            </div>
+          </div>
+
+          <br>
           <button onclick='event.stopPropagation(); abrirModalEditarProtected(${dataJson})' style="background-color: #f39c12; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px; margin-bottom: 6px;">
             ✏️ Editar Cliente (Admin)
           </button>
@@ -529,6 +620,39 @@
       marker.bindPopup(popupContent);
       listaMarcadores.push({instanciaMarker: marker, categoria: calificacion || 'MALO' });
     }
+
+    window.enviarCalificacion = async function(clienteId) {
+      const selectStars = document.getElementById(`stars_${clienteId}`);
+      const textComment = document.getElementById(`comment_${clienteId}`);
+
+      const estrellas = parseInt(selectStars.value);
+      const comentario = textComment.value.trim();
+
+      if (!comentario) {
+        alert("Por favor escribe un comentario.");
+        return;
+      }
+
+      const usuarioNombre = usuarioActual ? usuarioActual.email.split('@')[0] : 'Usuario';
+
+      const nuevaResena = {
+        usuario: usuarioNombre,
+        estrellas: estrellas,
+        comentario: comentario,
+        fecha: new Date().toISOString()
+      };
+
+      try {
+        await updateDoc(doc(db, "clientes", clienteId), {
+          resenas: arrayUnion(nuevaResena)
+        });
+        alert("⭐ Opinión guardada correctamente");
+        cargarClientes();
+      } catch (error) {
+        console.error("Error al guardar reseña:", error);
+        alert("Hubo un error al publicar tu comentario: " + error.message);
+      }
+    };
 
     window.eliminarCliente = async function (id) {
       if (!id) {
@@ -576,7 +700,6 @@
       }
     }
 
-    // Subir imagen GRATIS a ImgBB
     async function subirImagenImgBB(file) {
       if (!file) return null;
       const formData = new FormData();
@@ -628,7 +751,8 @@
           motivo: motivo,
           fotoUrl: fotoUrl,
           lat: coordenadasTemp.lat,
-          lng: coordenadasTemp.lng
+          lng: coordenadasTemp.lng,
+          resenas: []
         };
 
         const docRef = await addDoc(collection(db, "clientes"), nuevoCliente);
