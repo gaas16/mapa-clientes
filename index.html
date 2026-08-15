@@ -2,944 +2,862 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>RutaCash - Sistema de Cobranza</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapa de Clientes - Grupo Privado</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Leaflet Geocoder CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  
   <style>
-    * { box-sizing: border-box; font-family: sans-serif; margin: 0; padding: 0; }
-    body { background-color: #f2f2f2; user-select: none; padding-bottom: 65px; }
-
-    /* Pantalla Login */
-    #screenLogin {
-      display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: #3b5998; justify-content: center; align-items: center; z-index: 2000;
+    body, html { 
+      margin: 0; 
+      padding: 0; 
+      height: 100%; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: #f4f6f9; 
     }
-    .login-card {
-      background: white; padding: 25px; border-radius: 8px; width: 85%; max-width: 350px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2); text-align: center;
-    }
-    .login-card h2 { color: #3b5998; margin-bottom: 15px; }
-    .login-card input {
-      width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #ccc;
-      border-radius: 4px; font-size: 15px;
-    }
-
-    /* Encabezado */
-    .top-header {
-      background-color: #3b5998; color: white; padding: 12px 15px;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .top-header h2 { font-size: 16px; font-weight: normal; }
-    .top-header .date-badge { font-size: 11px; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px; }
-
-    /* Vistas */
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    /* Buscador y Filtros */
-    .filter-section { background: white; padding: 10px 12px; border-bottom: 1px solid #ddd; }
-    .search-input { width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; margin-bottom: 8px; }
-    .filter-buttons { display: flex; gap: 5px; overflow-x: auto; }
-    .btn-filter {
-      background: #e0e0e0; border: none; padding: 6px 10px; border-radius: 12px;
-      font-size: 12px; font-weight: bold; color: #555; cursor: pointer; white-space: nowrap;
-    }
-    .btn-filter.active { background: #3b5998; color: white; }
-
-    /* Tarjetas de Clientes */
-    .client-card {
-      background-color: white; padding: 12px 15px; display: flex; align-items: center;
-      border-bottom: 1px solid #e0e0e0;
-    }
-    .icon-status {
-      width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center;
-      justify-content: center; font-weight: bold; color: white; margin-right: 12px; font-size: 13px; flex-shrink: 0;
-    }
-    .status-yellow { background-color: #f39c12; }
-    .status-red { background-color: #e74c3c; }
-    .status-green { background-color: #2ecc71; }
-    .status-grey { background-color: #95a5a6; }
-
-    .client-info { flex: 1; }
-    .client-info .name { font-size: 14px; font-weight: bold; color: #333; text-transform: uppercase; }
-    .client-info .details { font-size: 12px; color: #555; margin-top: 2px; }
     
-    .actions-group { display: flex; gap: 4px; align-items: center; }
-    .btn-action { background: #27ae60; color: white; border: none; padding: 7px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; }
-    .btn-undo { background: #e67e22; color: white; border: none; padding: 7px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; }
-    .btn-edit { background: #3498db; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
-    .btn-delete { background: #e74c3c; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+    /* Pantalla de Login / Registro */
+    #auth-screen {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: #2c3e50;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+    }
 
-    /* Resumen Financiero */
-    .summary-box { background: white; margin: 10px; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-    .summary-row { display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #eee; font-size: 14px; }
-    .summary-row:nth-child(even) { background-color: #f9f9f9; }
+    .auth-card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      width: 320px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      text-align: center;
+    }
 
-    /* Formularios */
-    .form-container { background: white; margin: 10px; padding: 15px; border-radius: 6px; }
-    .form-group { margin-bottom: 10px; }
+    .auth-card h2 { margin-top: 0; color: #2c3e50; margin-bottom: 20px; }
+    .auth-card input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    .auth-card button {
+      width: 100%;
+      padding: 10px;
+      background: #27ae60;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+
+    .auth-card button.btn-secondary {
+      background: #3498db;
+      margin-top: 8px;
+    }
+
+    .auth-error { color: #e74c3c; font-size: 12px; margin-top: 10px; display: none; }
+
+    /* Contenedor del Mapa */
+    #map { height: 100vh; width: 100%; position: relative; display: none; }
+    
+    /* Panel Flotante del Mapa / Adaptable a Móviles */
+    .filter-container {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      left: 10px;
+      max-width: 450px;
+      margin: 0 auto;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 8px 12px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: space-between;
+      overflow-x: auto;
+    }
+
+    .filter-btn {
+      border: none;
+      padding: 8px 10px;
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 11px;
+      color: white;
+      white-space: nowrap;
+      flex: 1;
+      text-align: center;
+    }
+
+    .btn-all { background-color: #2c3e50; }
+    .btn-bueno { background-color: #2ecc71; }
+    .btn-regular { background-color: #e67e22; }
+    .btn-malo { background-color: #e74c3c; }
+    .btn-logout { background-color: #7f8c8d; }
+
+    .instruction-banner {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 12px;
+      pointer-events: none;
+      text-align: center;
+      width: 80%;
+      max-width: 320px;
+    }
+
+    /* Modal Formulario */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 340px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-content h3 { margin-top: 0; color: #333; margin-bottom: 15px; font-size: 18px; }
+
+    .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; }
-    .form-group input, .form-group select { width: 100%; padding: 9px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-    .form-row { display: flex; gap: 8px; }
-    .form-row .form-group { flex: 1; }
-
-    .input-with-btn { display: flex; gap: 6px; }
-    .input-with-btn input { flex: 1; }
-    .btn-mapa {
-      background-color: #0288d1; color: white; border: none; padding: 8px 10px;
-      border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; white-space: nowrap;
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 14px;
     }
 
-    .preview-fachada {
-      width: 100%; max-height: 180px; object-fit: cover; border-radius: 6px;
-      margin-top: 6px; display: none; border: 1px solid #ddd;
+    .form-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-save { background: #27ae60; color: white; border: none; padding: 10px; border-radius: 6px; width: 50%; font-weight: bold; cursor: pointer; }
+    .btn-cancel { background: #95a5a6; color: white; border: none; padding: 10px; border-radius: 6px; width: 50%; font-weight: bold; cursor: pointer; }
+
+    /* Estilos PopUp Mapa */
+    .leaflet-popup-content-wrapper {
+      padding: 10px !important;
+      border-radius: 12px !important;
+    }
+    .leaflet-popup-content {
+      font-size: 13px !important;
+      line-height: 1.4 !important;
+      margin: 8px 10px !important;
+      min-width: 240px !important;
+      max-width: 280px !important;
+    }
+    .leaflet-popup-content b,
+    .leaflet-popup-content strong {
+      font-size: 14px !important;
+      display: inline-block;
+    }
+    .img-fachada {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid #ddd;
     }
 
-    .calc-box { background: #eef2f7; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #3b5998; font-size: 13px; }
-    .btn-submit { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 15px; cursor: pointer; }
-    .btn-close-box { background: #e67e22; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 10px; }
-    
-    /* Modales */
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
-    .modal-card { background: white; padding: 18px; border-radius: 8px; width: 90%; max-width: 420px; max-height: 92vh; overflow-y: auto; }
-
-    /* Estilos Modal Cobro Avanzado */
-    .header-cobro-cliente h3 { margin-bottom: 2px; color: #3b5998; font-size: 16px; text-transform: uppercase; }
-    .info-cuotas-box { background: #f8f9fa; padding: 8px; border-radius: 4px; font-size: 12px; color: #444; margin-bottom: 10px; border: 1px solid #e2e8f0; }
-    .radio-group-cobro { display: flex; gap: 15px; background: #eef2f7; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-weight: bold; font-size: 13px; }
-    .radio-group-cobro label { cursor: pointer; display: flex; align-items: center; gap: 4px; }
-
-    /* Navegación Inferior */
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 0; right: 0; height: 55px;
-      background-color: #ffffff; border-top: 1px solid #ccc;
-      display: flex; justify-content: space-around; align-items: center; z-index: 999;
+    /* Seccion de Reseñas y Estrellas */
+    .reviews-section {
+      margin-top: 10px;
+      border-top: 1px solid #eee;
+      padding-top: 8px;
     }
-    .nav-item {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      font-size: 11px; color: #666; background: none; border: none; cursor: pointer; width: 100%; height: 100%;
+    .star-rating {
+      color: #f1c40f;
+      font-size: 16px;
     }
-    .nav-item.active { background-color: #f1c40f; color: #000; font-weight: bold; }
+    .review-item {
+      background: #f8f9fa;
+      padding: 6px 8px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 11px;
+      border-left: 3px solid #f1c40f;
+    }
+    .review-item strong { font-size: 11px !important; color: #2c3e50; }
+    .review-form select, .review-form textarea {
+      width: 100%;
+      padding: 6px;
+      font-size: 12px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      margin-bottom: 6px;
+      box-sizing: border-box;
+    }
+    .btn-review {
+      background: #27ae60;
+      color: white;
+      border: none;
+      padding: 6px;
+      width: 100%;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Screen Login por Alias -->
-  <div id="screenLogin">
-    <div class="login-card">
-      <h2>::RutaCash::</h2>
-      <input type="text" id="loginAlias" placeholder="Usuario / Alias (ej: ruta1)" style="text-transform: lowercase;">
-      <input type="password" id="loginPassword" placeholder="Contraseña">
-      <button class="btn-submit" onclick="iniciarSesion()">Ingresar</button>
+  <!-- Pantalla de Login / Registro Obligatorio -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <h2 id="auth-title">Acceso al Grupo</h2>
+      <input type="email" id="authEmail" placeholder="Correo Electrónico">
+      <input type="password" id="authPassword" placeholder="Contraseña">
+      
+      <button id="btnLogin" onclick="iniciarSesion()">Iniciar Sesión</button>
+      <button id="btnRegister" class="btn-secondary" onclick="registrarse()">Registrarse</button>
+      
+      <div id="authError" class="auth-error"></div>
     </div>
   </div>
 
-  <!-- Header Global -->
-  <div class="top-header">
-    <h2 id="titleHeader">::RutaCash:: Clientes</h2>
-    <div>
-      <span class="date-badge" id="fechaHoy"></span>
-      <button onclick="cerrarSesion()" style="background:none; border:none; color:white; font-size:12px; text-decoration:underline; margin-left:5px; cursor:pointer;">Salir</button>
+  <!-- Contenedor del Mapa -->
+  <div id="map">
+    <!-- Panel Control Superior con Filtros -->
+    <div class="filter-container">
+      <button class="filter-btn btn-all" onclick="filtrarMapa('TODOS')">Todos</button>
+      <button class="filter-btn btn-bueno" onclick="filtrarMapa('BUENO')">Buenos</button>
+      <button class="filter-btn btn-regular" onclick="filtrarMapa('REGULAR')">Regulares</button>
+      <button class="filter-btn btn-malo" onclick="filtrarMapa('MALO')">Malos</button>
+      <button class="filter-btn btn-logout" onclick="cerrarSesion()">Salir</button>
+    </div>
+
+    <!-- Instrucción visual -->
+    <div class="instruction-banner">
+      🔍 Busca dirección o haz <b>doble clic</b> para agregar cliente
     </div>
   </div>
 
-  <!-- PESTAÑA 1: LISTA DE CLIENTES -->
-  <div id="tabClientes" class="tab-content active">
-    <div class="filter-section">
-      <input type="text" id="inputBuscar" class="search-input" placeholder="🔍 Buscar Cliente..." onkeyup="filtrarClientes()">
-      <div class="filter-buttons">
-        <button class="btn-filter active" onclick="setFiltro('PENDIENTES', this)">Pendientes</button>
-        <button class="btn-filter" onclick="setFiltro('PAGADOS', this)">Pagados Hoy</button>
-        <button class="btn-filter" onclick="setFiltro('ATRASADOS', this)">Atrasados (5+ días)</button>
-      </div>
-    </div>
-    <div id="contenedorLista">
-      <div style="text-align:center; padding: 30px; color:#777;">Cargando lista...</div>
-    </div>
-  </div>
-
-  <!-- PESTAÑA 2: RESUMEN FINANCIERO Y CAJA -->
-  <div id="tabResumen" class="tab-content">
-    <div class="summary-box">
-      <div class="summary-row"><span>Fecha de Ruta</span><b id="resFecha">-</b></div>
-      <div class="summary-row"><span>Base Inicial del Día</span><b id="resBaseInicial" style="color:#2980b9;">$0.00</b></div>
-      <div class="summary-row"><span>Recaudo del Día (Cobros)</span><b id="resRecaudoDia" style="color:#27ae60;">$0.00</b></div>
-      <div class="summary-row"><span>Otros Ingresos</span><b id="resIngresos" style="color:#27ae60;">+$0.00</b></div>
-      <div class="summary-row"><span>Gastos / Egresos</span><b id="resEgresos" style="color:#c0392b;">-$0.00</b></div>
-      <div class="summary-row" style="background:#e8f8f5;"><span><b>Efectivo en Caja Actual</b></span><b id="resCajaActual" style="font-size:16px; color:#16a085;">$0.00</b></div>
-      <hr style="border:none; border-top:1px solid #eee;">
-      <div class="summary-row"><span>Número de Clientes</span><b id="resNumClientes">0</b></div>
-      <div class="summary-row"><span>Clientes Nuevos Hoy</span><b id="resClientesNuevos">0</b></div>
-      <div class="summary-row"><span>Cobros Realizados</span><b id="resCobrosRealizados">0/0</b></div>
-      <div class="summary-row"><span>Recaudo Esperado (100%)</span><b id="resRecaudoEsperado">$0.00</b></div>
-      <div class="summary-row"><span>Total Prestado (Capital)</span><b id="resTotalPrestado">$0.00</b></div>
-      <div class="summary-row"><span>Cartera Pendiente</span><b id="resCarteraPendiente" style="color:#e74c3c;">$0.00</b></div>
-    </div>
-    
-    <div style="padding: 0 10px;">
-      <button class="btn-close-box" onclick="realizarCierreCaja()">🔒 Realizar Cierre de Caja (Guardar Base y Reiniciar Cobros)</button>
-    </div>
-  </div>
-
-  <!-- PESTAÑA 3: MOVIMIENTOS DETALLADOS (GASTOS E INGRESOS) -->
-  <div id="tabGastos" class="tab-content">
-    <div class="form-container">
-      <h3 style="margin-bottom:12px; color:#3b5998;">💸 Movimientos de Caja</h3>
+  <!-- Modal Formulario Agregar Cliente -->
+  <div class="modal-overlay" id="modalForm">
+    <div class="modal-content">
+      <h3>➕ Agregar Nuevo Cliente</h3>
       
       <div class="form-group">
-        <label>Tipo de Movimiento</label>
-        <select id="tipoMovimiento" onchange="actualizarCategorias()">
-          <option value="EGRESO">🔴 Gasto / Egreso (Salida de dinero)</option>
-          <option value="INGRESO">🟢 Ingreso (Entrada de dinero)</option>
+        <label>Nombre del Cliente</label>
+        <input type="text" id="inputNombre" placeholder="Ej: María Silva">
+      </div>
+
+      <div class="form-group">
+        <label>Dirección</label>
+        <input type="text" id="inputDireccion" placeholder="Ej: Av. Boqueirão, 1947">
+      </div>
+      
+      <div class="form-group">
+        <label>Calificación</label>
+        <select id="inputCalificacion">
+          <option value="BUENO">BUENO (Verde)</option>
+          <option value="REGULAR">REGULAR (Naranja)</option>
+          <option value="MALO">MALO (Rojo)</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label>Categoría</label>
-        <select id="categoriaMovimiento"></select>
+        <label>Monto Solicitado ($)</label>
+        <input type="number" id="inputMonto" placeholder="Ej: 3000">
       </div>
 
       <div class="form-group">
-        <label>Monto ($)</label>
-        <input type="number" id="montoMovimiento" placeholder="0.00">
+        <label>Score Crédito</label>
+        <input type="number" id="inputScore" placeholder="Ej: 750" value="0">
       </div>
 
       <div class="form-group">
-        <label>Nota / Detalle Adicional (Opcional)</label>
-        <input type="text" id="conceptoMovimiento" placeholder="Ej: Pago mes de agosto local, etc.">
+        <label>Motivo / Observación</label>
+        <input type="text" id="inputMotivo" placeholder="Ej: Pago puntual">
       </div>
 
-      <button class="btn-submit" onclick="guardarMovimiento()">Guardar Movimiento</button>
-    </div>
+      <div class="form-group">
+        <label>Foto Fachada del Negocio</label>
+        <input type="file" id="inputFoto" accept="image/*">
+      </div>
 
-    <div class="form-container" style="margin-top: 15px;">
-      <h4 style="margin-bottom:10px; color:#555;">📋 Movimientos del Día</h4>
-      <div id="listaMovimientosHoy" style="font-size:13px; color:#666;">Cargando movimientos...</div>
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn-save" id="btnGuardar" onclick="guardarNuevoCliente()">Guardar</button>
+      </div>
     </div>
   </div>
 
-  <!-- PESTAÑA 4: NUEVO CLIENTE CON UBICACIÓN Y FACHADA -->
-  <div id="tabNuevo" class="tab-content">
-    <div class="form-container">
-      <h3 style="margin-bottom:12px; color:#3b5998;">➕ Registrar Préstamo y Cliente</h3>
+  <!-- Modal Formulario Editar Cliente (Solo Admin) -->
+  <div class="modal-overlay" id="modalEditForm">
+    <div class="modal-content">
+      <h3>✏️ Editar Cliente (Admin)</h3>
+      <input type="hidden" id="editClienteId">
+      <input type="hidden" id="editFotoUrlActual">
       
-      <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="nombre" placeholder="Nombre completo"></div>
-      <div class="form-group"><label>Teléfono (WhatsApp)</label><input type="tel" id="telefono" placeholder="Ej: 5491122334455"></div>
-      
-      <!-- Ubicación y Rutas -->
       <div class="form-group">
-        <label>🏠 Dirección de Residencia</label>
-        <div class="input-with-btn">
-          <input type="text" id="dirResidencia" placeholder="Ej: Calle 10 # 4-20">
-          <button type="button" class="btn-mapa" onclick="abrirMapa('dirResidencia')">🗺️ Ruta</button>
-        </div>
+        <label>Nombre del Cliente</label>
+        <input type="text" id="editNombre">
       </div>
-
       <div class="form-group">
-        <label>🏪 Dirección Local / Negocio</label>
-        <div class="input-with-btn">
-          <input type="text" id="dirLocal" placeholder="Ej: Av. Principal # 15-30">
-          <button type="button" class="btn-mapa" onclick="abrirMapa('dirLocal')">🗺️ Ruta</button>
-        </div>
+        <label>Dirección</label>
+        <input type="text" id="editDireccion">
       </div>
-
-      <!-- Foto de Fachada -->
       <div class="form-group">
-        <label>📸 Foto de la Fachada (Casa / Local)</label>
-        <input type="file" id="inputFotoFachada" accept="image/*" capture="environment" onchange="previewImagenFachada(event)">
-        <img id="previewFoto" class="preview-fachada" alt="Vista previa fachada">
-      </div>
-
-      <div class="form-group"><label>Monto Prestado / Capital ($)</label><input type="number" id="montoCapital" placeholder="1000" oninput="calcularPrestamo()"></div>
-      <div class="form-group">
-        <label>Interés (%)</label>
-        <select id="interes" onchange="calcularPrestamo()">
-          <option value="10">10%</option><option value="15">15%</option>
-          <option value="20" selected>20%</option><option value="25">25%</option><option value="30">30%</option>
+        <label>Calificación</label>
+        <select id="editCalificacion">
+          <option value="BUENO">BUENO (Verde)</option>
+          <option value="REGULAR">REGULAR (Naranja)</option>
+          <option value="MALO">MALO (Rojo)</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Modalidad</label>
-        <select id="modalidad"><option value="Diario">Diario</option><option value="Semanal">Semanal</option></select>
+        <label>Monto Solicitado ($)</label>
+        <input type="number" id="editMonto">
       </div>
       <div class="form-group">
-        <label>Plazo (Cuotas)</label>
-        <select id="plazo" onchange="calcularPrestamo()"></select>
+        <label>Score Crédito</label>
+        <input type="number" id="editScore">
       </div>
-      
-      <div class="calc-box">
-        <div>Total a Pagar: <b id="calcTotal">$0.00</b></div>
-        <div>Valor por Cuota: <b id="calcCuota">$0.00</b></div>
-      </div>
-      <button class="btn-submit" onclick="guardarCliente()">Guardar Préstamo</button>
-    </div>
-  </div>
-
-  <!-- MODAL INGRESO DE COBRO (CUOTA, ABONO, NO PAGO) -->
-  <div class="modal" id="modalCobroAvanzado">
-    <div class="modal-card">
-      <div class="header-cobro-cliente">
-        <h3 id="mcNombre">Cliente</h3>
-        <div class="info-cuotas-box">
-          <div>Cuotas Pagadas: <b id="mcPagadas">0</b>/<b id="mcTotales">0</b> | Atrasadas: <b id="mcAtrasadas" style="color:#e74c3c;">0</b></div>
-          <div>Pendientes: <b id="mcPendientes">0</b></div>
-        </div>
-        <div style="display:flex; gap:10px; margin-bottom:10px; font-size:12px;">
-          <a id="mcBtnTel" href="#" style="color:#0288d1; text-decoration:none;">📞 Llamar</a>
-          <button id="mcBtnRutaRes" class="btn-mapa" style="padding:2px 6px;">🏠 Ruta Casa</button>
-          <button id="mcBtnRutaLoc" class="btn-mapa" style="padding:2px 6px;">🏪 Ruta Local</button>
-        </div>
-        <img id="mcFotoFachada" class="preview-fachada" style="margin-bottom:10px;" alt="Fachada">
-      </div>
-
-      <!-- Selector de Modo -->
-      <div class="radio-group-cobro">
-        <label><input type="radio" name="modoCobro" value="cuota" checked onchange="cambiarModoCobro('cuota')"> Cuota</label>
-        <label><input type="radio" name="modoCobro" value="abono" onchange="cambiarModoCobro('abono')"> Abono</label>
-        <label><input type="radio" name="modoCobro" value="nopago" onchange="cambiarModoCobro('nopago')"> No Pago</label>
-      </div>
-
-      <input type="hidden" id="mcClienteId">
-      <input type="hidden" id="mcCuotaBase">
-
       <div class="form-group">
-        <label>Producto / Crédito</label>
-        <input type="text" id="mcProducto" value="CRÉDITO EN EFECTIVO" readonly>
+        <label>Motivo / Observación</label>
+        <input type="text" id="editMotivo">
       </div>
-
-      <div class="form-row">
-        <div class="form-group"><label>Total Venta</label><input type="number" id="mcTotalVenta" readonly></div>
-        <div class="form-group"><label>Saldo Actual</label><input type="number" id="mcSaldoActual" readonly></div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Valor a Pagar (*)</label>
-          <input type="number" id="mcValorPagar" step="0.01" oninput="recalcularModalCobro()" readonly>
-        </div>
-        <div class="form-group">
-          <label>Nº de Cuotas</label>
-          <input type="number" id="mcNumCuotas" value="1" min="1" oninput="recalcularModalCobro()">
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Nuevo Saldo</label>
-          <input type="number" id="mcNuevoSaldo" style="color:#c0392b; font-weight:bold;" readonly>
-        </div>
-        <div class="form-group">
-          <label>Total Sanción ($)</label>
-          <input type="number" id="mcSancion" value="0.00" oninput="recalcularModalCobro()">
-        </div>
-      </div>
-
       <div class="form-group">
-        <label>Forma de Pago</label>
-        <select id="mcFormaPago">
-          <option value="Efectivo">1-> Efectivo</option>
-          <option value="Transferencia">2-> Transferencia / Nequi</option>
-        </select>
+        <label>Actualizar / Subir Foto Fachada</label>
+        <input type="file" id="editFoto" accept="image/*">
       </div>
-
-      <div class="form-group">
-        <label>Observaciones</label>
-        <input type="text" id="mcObservaciones" placeholder="Ej: No estaba, prometió pagar mañana...">
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="cerrarModalEdit()">Cancelar</button>
+        <button class="btn-save" id="btnEditarGuardar" onclick="guardarCambiosCliente()">Guardar Cambios</button>
       </div>
-
-      <button class="btn-submit" onclick="confirmarIngresoCobro()">✔ GUARDAR COBRO</button>
-      <button style="background:#95a5a6; color:white; border:none; padding:8px; border-radius:4px; width:100%; margin-top:5px; cursor:pointer;" onclick="cerrarModalCobro()">Cancelar</button>
     </div>
   </div>
+  
+  <!-- Leaflet JS & Geocoder -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
-  <!-- Modal Editar Cliente -->
-  <div class="modal" id="modalEditar">
-    <div class="modal-card">
-      <h3 style="margin-bottom:10px; color:#3b5998;">✏️ Editar Cliente / Saldo</h3>
-      <input type="hidden" id="editId">
-      <div class="form-group"><label>Nombre</label><input type="text" id="editNombre"></div>
-      <div class="form-group"><label>Teléfono</label><input type="tel" id="editTelefono"></div>
-      <div class="form-group"><label>Saldo Pendiente ($)</label><input type="number" id="editSaldo"></div>
-      <div class="form-group"><label>Valor de Cuota ($)</label><input type="number" id="editCuota"></div>
-      <button class="btn-submit" onclick="guardarEdicionCliente()">Guardar Cambios</button>
-      <button style="background:#95a5a6; color:white; border:none; padding:8px; border-radius:4px; width:100%; margin-top:5px; cursor:pointer;" onclick="cerrarModalEditar()">Cancelar</button>
-    </div>
-  </div>
-
-  <!-- Modal PIN Seguridad -->
-  <div class="modal" id="modalPin">
-    <div class="modal-card">
-      <h3 style="margin-bottom:10px; color:#3b5998;">🔒 Clave de Seguridad</h3>
-      <p style="font-size:12px; color:#666; margin-bottom:10px;">Ingresa el PIN de administrador (1234):</p>
-      <input type="password" id="inputPin" style="width:100%; padding:8px; margin-bottom:12px; font-size:16px; text-align:center;">
-      <button class="btn-submit" onclick="validarPin()">Confirmar</button>
-      <button style="background:#95a5a6; color:white; border:none; padding:8px; border-radius:4px; width:100%; margin-top:5px; cursor:pointer;" onclick="cerrarModalPin()">Cancelar</button>
-    </div>
-  </div>
-
-  <!-- Menú Inferior -->
-  <div class="bottom-nav">
-    <button class="nav-item active" onclick="cambiarTab('Clientes', this)">📋 Clientes</button>
-    <button class="nav-item" onclick="cambiarTab('Resumen', this)">📊 Resumen</button>
-    <button class="nav-item" onclick="cambiarTab('Gastos', this)">💸 Movimientos</button>
-    <button class="nav-item" onclick="cambiarTab('Nuevo', this)">➕ Nuevo</button>
-  </div>
-
-  <!-- Firebase Integration -->
+  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, getDoc, setDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      createUserWithEmailAndPassword, 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+    // Configuración Firebase
     const firebaseConfig = {
-      apiKey: "AIzaSyCI-s09x6xqiJ3LNoralDmX9GuNtTuSK5k",
-      authDomain: "rutacash-44a4a.firebaseapp.com",
-      projectId: "rutacash-44a4a",
-      storageBucket: "rutacash-44a4a.firebasestorage.app",
-      messagingSenderId: "509573274669",
-      appId: "1:509573274669:web:3766c2e5e08962ebe8aca4",
-      measurementId: "G-KKX2RTKF1M"
+      apiKey: "AIzaSyCpY9ycS8APh6xGGsPd3BKF5A2xGLtch9E",
+      authDomain: "creditomapa-7083e.firebaseapp.com",
+      projectId: "creditomapa-7083e",
+      storageBucket: "creditomapa-7083e.firebasestorage.app",
+      messagingSenderId: "353134326446",
+      appId: "1:353134326446:web:0b9c9cb22c34627346333f",
+      measurementId: "G-HNVLR8YOWE"
     };
+
+    const IMGBB_API_KEY = "53cb3b5f48ad867ea85a7d7af569ab02";
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    document.getElementById('fechaHoy').innerText = todayStr;
-    document.getElementById('resFecha').innerText = todayStr;
+    let map = null;
+    let listaMarcadores = [];
+    let coordenadasTemp = null;
+    let usuarioActual = null;
 
-    let localSessionId = localStorage.getItem('rutacash_session_id');
-    let unsubscribeSession = null;
+    // Iconos Leaflet
+    const greenIcon = new L.Icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
 
-    let todosLosClientes = [];
-    let filtroActual = 'PENDIENTES'; // Filtro por defecto
-    let accionPendiente = null;
-    const PIN_ADMIN = "1234";
+    const orangeIcon = new L.Icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
 
-    let baseInicialCaja = 0;
-    let totalEgresos = 0;
-    let totalIngresos = 0;
-    let fotoFachadaBase64 = "";
+    const redIcon = new L.Icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
 
-    // Cargar Plazos (1 a 60)
-    const selectPlazo = document.getElementById('plazo');
-    for (let i = 1; i <= 60; i++) {
-      const opt = document.createElement('option');
-      opt.value = i; opt.innerText = `${i} cuotas`;
-      if (i === 24) opt.selected = true;
-      selectPlazo.appendChild(opt);
-    }
-
-    // --- MANEJO DE MAPAS Y RUTAS ---
-    window.abrirMapa = (idInput) => {
-      const direccion = document.getElementById(idInput).value.trim();
-      if (!direccion) return alert("Por favor ingresa una dirección primero.");
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(direccion)}`, '_blank');
-    };
-
-    window.abrirMapaTexto = (dir) => {
-      if (!dir) return alert("Este cliente no tiene registrada esa dirección.");
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dir)}`, '_blank');
-    };
-
-    // --- MANEJO DE IMAGEN FACHADA ---
-    window.previewImagenFachada = (event) => {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          fotoFachadaBase64 = e.target.result;
-          const img = document.getElementById('previewFoto');
-          img.src = fotoFachadaBase64;
-          img.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-
-    // --- CATEGORÍAS ---
-    const categoriasEgreso = [
-      "🏠 Alquiler / Renta (Local, Oficina, Casa)", "⛽ Gasolina / Combustible",
-      "🔧 Reparación / Mantenimiento Moto", "🍟 Alimentación / Almuerzo / Refresco",
-      "💳 Pago Cuota Préstamo / Intereses", "📦 Papelería / Tarjetas / Impresiones",
-      "📱 Recarga Celular / Datos", "🛑 Peajes / Estacionamiento",
-      "💸 Retiro de Capital / Ganancia", "❓ Otro Gasto"
-    ];
-
-    const categoriasIngreso = [
-      "💵 Inversión / Capital Inicial", "🔄 Reposición / Reembolso de Gasto",
-      "📈 Cobro Interés Extra / Comisión", "💰 Préstamo Recibido", "❓ Otro Ingreso"
-    ];
-
-    window.actualizarCategorias = () => {
-      const tipo = document.getElementById('tipoMovimiento').value;
-      const selectCat = document.getElementById('categoriaMovimiento');
-      selectCat.innerHTML = '';
-      const lista = (tipo === 'EGRESO') ? categoriasEgreso : categoriasIngreso;
-      lista.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat; opt.innerText = cat;
-        selectCat.appendChild(opt);
-      });
-    };
-    actualizarCategorias();
-
-    function calcularDiasAtrasoSinDomingos(fechaReferenciaStr) {
-      if (!fechaReferenciaStr) return 0;
-      const fInicio = new Date(fechaReferenciaStr + 'T00:00:00');
-      const fHoy = new Date(todayStr + 'T00:00:00');
-      let diasAtraso = 0;
-      let aux = new Date(fInicio);
-      aux.setDate(aux.getDate() + 1);
-      while (aux <= fHoy) {
-        if (aux.getDay() !== 0) diasAtraso++;
-        aux.setDate(aux.getDate() + 1);
-      }
-      return diasAtraso;
-    }
-
-    // --- SESIÓN ---
-    window.iniciarSesion = async () => {
-      let alias = document.getElementById('loginAlias').value.trim().toLowerCase();
-      const pass = document.getElementById('loginPassword').value;
-      if (!alias) return alert("Ingresa tu usuario / alias");
-      const email = alias.includes('@') ? alias : `${alias}@rutacash.com`;
-      try {
-        const userCred = await signInWithEmailAndPassword(auth, email, pass);
-        const newSessionId = 'sess_' + Math.random().toString(36).substring(2) + Date.now();
-        localStorage.setItem('rutacash_session_id', newSessionId);
-        localSessionId = newSessionId;
-        await setDoc(doc(db, "sesiones", userCred.user.uid), { activeSessionId: newSessionId });
-      } catch (e) {
-        alert("Error de acceso: Usuario o contraseña incorrectos.");
-      }
-    };
-
-    window.cerrarSesion = () => {
-      localStorage.removeItem('rutacash_session_id');
-      signOut(auth);
-    };
-
-    onAuthStateChanged(auth, (user) => {
+    // Control de Estado de Autenticación
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
-        document.getElementById('screenLogin').style.display = 'none';
-        if (unsubscribeSession) unsubscribeSession();
-        unsubscribeSession = onSnapshot(doc(db, "sesiones", user.uid), (docSnap) => {
-          if (docSnap.exists() && docSnap.data().activeSessionId !== localStorage.getItem('rutacash_session_id')) {
-            alert("Tu sesión ha sido abierta en otro dispositivo.");
-            cerrarSesion();
+        usuarioActual = user;
+        try {
+          const docSnap = await getDoc(doc(db, "sesiones_activas", user.uid));
+          const tokenBD = docSnap.exists() ? docSnap.data().token : null;
+          const tokenLocal = localStorage.getItem("tokenSesion");
+
+          if (tokenBD && tokenLocal && tokenLocal !== tokenBD) {
+            localStorage.removeItem("tokenSesion");
+            alert("⚠️ Se ha iniciado sesión desde otro dispositivo. Tu sesión en este equipo ha sido cerrada.");
+            await signOut(auth);
+            return;
           }
-        });
-        cargarDatos();
+
+          document.getElementById('auth-screen').style.display = 'none';
+          document.getElementById('map').style.display = 'block';
+          if (!map) inicializarMapa();
+          cargarClientes();
+
+        } catch (error) {
+          console.error("Error verificando sesión:", error);
+        }
       } else {
-        document.getElementById('screenLogin').style.display = 'flex';
+        usuarioActual = null;
+        localStorage.removeItem("tokenSesion");
+        document.getElementById('auth-screen').style.display = 'flex';
+        document.getElementById('map').style.display = 'none';
       }
     });
 
-    window.cambiarTab = (tabName, btn) => {
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-      document.getElementById(`tab${tabName}`).classList.add('active');
-      btn.classList.add('active');
-      document.getElementById('titleHeader').innerText = `::RutaCash:: ${tabName}`;
+    window.iniciarSesion = async function() {
+      const email = document.getElementById('authEmail').value;
+      const pass = document.getElementById('authPassword').value;
+      mostrarError("");
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+        const user = userCredential.user;
+
+        const nuevoTokenSesion = Date.now().toString();
+        await setDoc(doc(db, "sesiones_activas", user.uid), { token: nuevoTokenSesion });
+        localStorage.setItem("tokenSesion", nuevoTokenSesion);
+
+      } catch (err) {
+        mostrarError("Error de acceso: " + err.message);
+      }
     };
 
-    window.calcularPrestamo = () => {
-      const capital = parseFloat(document.getElementById('montoCapital').value) || 0;
-      const pct = parseFloat(document.getElementById('interes').value) || 0;
-      const plazo = parseInt(document.getElementById('plazo').value) || 1;
-      const total = capital + (capital * (pct / 100));
-      const cuota = total / plazo;
-      document.getElementById('calcTotal').innerText = `$${total.toFixed(2)}`;
-      document.getElementById('calcCuota').innerText = `$${cuota.toFixed(2)}`;
+    window.registrarse = async function() {
+      const email = document.getElementById('authEmail').value;
+      const pass = document.getElementById('authPassword').value;
+      mostrarError("");
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+        const user = userCredential.user;
+
+        const nuevoTokenSesion = Date.now().toString();
+        await setDoc(doc(db, "sesiones_activas", user.uid), { token: nuevoTokenSesion });
+        localStorage.setItem("tokenSesion", nuevoTokenSesion);
+
+      } catch (err) {
+        mostrarError("Error en registro: " + err.message);
+      }
     };
 
-    window.guardarCliente = async () => {
-      const nombre = document.getElementById('nombre').value;
-      const telefono = document.getElementById('telefono').value;
-      const dirResidencia = document.getElementById('dirResidencia').value;
-      const dirLocal = document.getElementById('dirLocal').value;
-      const capital = parseFloat(document.getElementById('montoCapital').value) || 0;
-      const pct = parseFloat(document.getElementById('interes').value) || 0;
-      const modalidad = document.getElementById('modalidad').value;
-      const plazo = parseInt(document.getElementById('plazo').value) || 1;
-
-      if (!nombre || capital <= 0) return alert("Completa los datos correctamente.");
-
-      const montoTotal = capital + (capital * (pct / 100));
-      const cuota = montoTotal / plazo;
-
-      await addDoc(collection(db, "prestamos"), {
-        nombre, telefono, dirResidencia, dirLocal, fotoFachada: fotoFachadaBase64,
-        capital, pctInteres: pct, montoTotal, cuota, modalidad, plazo,
-        saldoPendiente: montoTotal, ultimoPagoFecha: "", fechaCreacion: todayStr,
-        totalAbonadoHoy: 0
-      });
-
-      alert("¡Préstamo registrado exitosamente!");
-      location.reload();
+    window.cerrarSesion = function() {
+      signOut(auth);
     };
 
-    window.guardarMovimiento = async () => {
-      const tipo = document.getElementById('tipoMovimiento').value;
-      const categoria = document.getElementById('categoriaMovimiento').value;
-      const monto = parseFloat(document.getElementById('montoMovimiento').value) || 0;
-      const nota = document.getElementById('conceptoMovimiento').value.trim();
-
-      if (monto <= 0) return alert("Ingresa un monto válido.");
-
-      await addDoc(collection(db, "movimientos"), {
-        tipo, categoria, monto, nota, fecha: todayStr
-      });
-
-      alert("¡Movimiento guardado con éxito!");
-      document.getElementById('montoMovimiento').value = '';
-      document.getElementById('conceptoMovimiento').value = '';
-      cargarDatos();
-    };
-
-    async function cargarDatos() {
-      const cajaSnap = await getDoc(doc(db, "caja", todayStr));
-      baseInicialCaja = cajaSnap.exists() ? (cajaSnap.data().baseInicial || 0) : 0;
-
-      const movSnap = await getDocs(collection(db, "movimientos"));
-      totalEgresos = 0; totalIngresos = 0;
-      const contenedorMovs = document.getElementById('listaMovimientosHoy');
-      contenedorMovs.innerHTML = '';
-      let huboMovs = false;
-
-      movSnap.forEach(d => {
-        const m = d.data();
-        if (m.fecha === todayStr) {
-          huboMovs = true;
-          if (m.tipo === 'EGRESO') totalEgresos += m.monto;
-          if (m.tipo === 'INGRESO') totalIngresos += m.monto;
-          const color = m.tipo === 'EGRESO' ? '#e74c3c' : '#27ae60';
-          const signo = m.tipo === 'EGRESO' ? '-' : '+';
-          const div = document.createElement('div');
-          div.style.cssText = "padding:6px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between;";
-          div.innerHTML = `<div><b>${m.categoria}</b> ${m.nota ? `<small>(${m.nota})</small>` : ''}</div><b style="color:${color};">${signo}$${m.monto.toFixed(2)}</b>`;
-          contenedorMovs.appendChild(div);
-        }
-      });
-      if (!huboMovs) contenedorMovs.innerHTML = '<span style="color:#aaa;">No hay movimientos registrados hoy</span>';
-
-      const querySnapshot = await getDocs(collection(db, "prestamos"));
-      todosLosClientes = [];
-      let totalEsperado = 0, recaudoDia = 0, totalPrestado = 0, carteraPendiente = 0, cobrosHechos = 0, clientesNuevos = 0;
-
-      querySnapshot.forEach((docSnap) => {
-        const c = docSnap.data();
-        c.id = docSnap.id;
-        todosLosClientes.push(c);
-
-        if (c.saldoPendiente > 0) {
-          totalEsperado += c.cuota;
-          carteraPendiente += c.saldoPendiente;
-        }
-        totalPrestado += c.capital || 0;
-
-        if (c.ultimoPagoFecha === todayStr) {
-          recaudoDia += c.totalAbonadoHoy || 0;
-          cobrosHechos++;
-        }
-        if (c.fechaCreacion === todayStr) clientesNuevos++;
-      });
-
-      const efectivoCaja = baseInicialCaja + recaudoDia + totalIngresos - totalEgresos;
-
-      document.getElementById('resBaseInicial').innerText = `$${baseInicialCaja.toFixed(2)}`;
-      document.getElementById('resRecaudoDia').innerText = `$${recaudoDia.toFixed(2)}`;
-      document.getElementById('resIngresos').innerText = `+$${totalIngresos.toFixed(2)}`;
-      document.getElementById('resEgresos').innerText = `-$${totalEgresos.toFixed(2)}`;
-      document.getElementById('resCajaActual').innerText = `$${efectivoCaja.toFixed(2)}`;
-      document.getElementById('resNumClientes').innerText = todosLosClientes.length;
-      document.getElementById('resClientesNuevos').innerText = clientesNuevos;
-      document.getElementById('resCobrosRealizados').innerText = `${cobrosHechos}/${todosLosClientes.length}`;
-      document.getElementById('resRecaudoEsperado').innerText = `$${totalEsperado.toFixed(2)}`;
-      document.getElementById('resTotalPrestado').innerText = `$${totalPrestado.toFixed(2)}`;
-      document.getElementById('resCarteraPendiente').innerText = `$${carteraPendiente.toFixed(2)}`;
-
-      renderizarLista();
+    function mostrarError(msg) {
+      const errDiv = document.getElementById('authError');
+      errDiv.innerText = msg;
+      errDiv.style.display = msg ? 'block' : 'none';
     }
 
-    function renderizarLista() {
-      const contenedor = document.getElementById('contenedorLista');
-      contenedor.innerHTML = '';
+    function inicializarMapa() {
+      map = L.map('map', { doubleClickZoom: false }).setView([-29.9189, -51.1781], 13);
 
-      let lista = todosLosClientes.filter(c => {
-        const busqueda = document.getElementById('inputBuscar').value.toLowerCase();
-        const coincideNombre = c.nombre.toLowerCase().includes(busqueda);
-        const pagadoHoy = c.ultimoPagoFecha === todayStr;
-        const fechaReferencia = c.ultimoPagoFecha || c.fechaCreacion;
-        const diasSinPagar = calcularDiasAtrasoSinDomingos(fechaReferencia);
-        const esAtrasado5Dias = !pagadoHoy && c.saldoPendiente > 0 && diasSinPagar >= 5;
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
+      }).addTo(map);
 
-        if (!coincideNombre) return false;
-        if (filtroActual === 'PENDIENTES') return !pagadoHoy && c.saldoPendiente > 0;
-        if (filtroActual === 'PAGADOS') return pagadoHoy;
-        if (filtroActual === 'ATRASADOS') return esAtrasado5Dias;
-        return true;
+      L.Control.geocoder({
+        defaultMarkGeocode: false,
+        placeholder: "Escribe calle y número..."
+      })
+      .on('markgeocode', function(e) {
+        map.setView(e.geocode.center, 17);
+      })
+      .addTo(map);
+
+      map.on('dblclick', function(e) {
+        coordenadasTemp = e.latlng;
+        document.getElementById('modalForm').style.display = 'flex';
       });
+    }
 
-      if (lista.length === 0) {
-        contenedor.innerHTML = `<div style="text-align:center; padding: 25px; color:#888;">No hay clientes en esta categoría</div>`;
+    function calcularPromedioEstrellas(resenas = []) {
+      if (!resenas.length) return { promedio: 0, total: 0, estrellasHtml: "☆☆☆☆☆" };
+      const suma = resenas.reduce((acc, r) => acc + (r.estrellas || 0), 0);
+      const promedio = (suma / resenas.length).toFixed(1);
+      
+      const numEstrellas = Math.round(promedio);
+      const estrellasHtml = "★".repeat(numEstrellas) + "☆".repeat(5 - numEstrellas);
+
+      return { promedio, total: resenas.length, estrellasHtml };
+    }
+
+    function agregarMarcadorAlMapa(data) {
+      const calificacion = (data.calificacion || "").toUpperCase();
+      let colorEstado = 'red';
+      let icono = redIcon;
+
+      if (calificacion === 'BUENO') {
+        colorEstado = 'green';
+        icono = greenIcon;
+      } else if (calificacion === 'REGULAR') {
+        colorEstado = 'orange';
+        icono = orangeIcon;
+      }
+
+      const marker = L.marker([data.lat, data.lng], { icon: icono }).addTo(map);
+      const direccionTexto = data.direccion ? `<br><b>Dirección:</b> ${data.direccion}` : '';
+      const fotoHtml = data.fotoUrl ? `<img src="${data.fotoUrl}" class="img-fachada" alt="Fachada" />` : '';
+
+      const resenas = data.resenas || [];
+      const infoEstrellas = calcularPromedioEstrellas(resenas);
+
+      let resenasHtml = resenas.slice(-3).reverse().map(r => `
+        <div class="review-item">
+          <strong>${r.usuario || 'Usuario'}:</strong> ${'★'.repeat(r.estrellas)}<br>
+          ${r.comentario}
+        </div>
+      `).join('');
+
+      if (!resenasHtml) {
+        resenasHtml = '<div style="font-size:11px; color:#777;">Sin comentarios aún.</div>';
+      }
+
+      const dataJson = JSON.stringify(data).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+
+      const popupContent = `
+        <div style="font-size:13px; line-height:1.4;">
+          ${fotoHtml}
+          <b style="text-transform:uppercase;">${data.nombre || 'Cliente sin nombre'}</b><br>
+          <div style="margin: 4px 0;">
+            <span class="star-rating">${infoEstrellas.estrellasHtml}</span> 
+            <b>${infoEstrellas.promedio}</b> (${infoEstrellas.total} resenas)
+          </div>
+          <b>Estado:</b> <span style="color:${colorEstado}; font-weight:bold;">${calificacion || 'N/A'}</span><br>
+          <b>Monto solicitado:</b> $${data.monto_solicitado || 0}<br>
+          <b>Score:</b> ${data.score_credito ?? 'N/A'}<br>
+          <b>Motivo:</b> ${data.motivo || 'N/A'}
+          ${direccionTexto}
+          
+          <div class="reviews-section">
+            <b style="font-size:12px;">💬 Comentarios del equipo:</b>
+            <div style="max-height: 100px; overflow-y: auto; margin-top:5px;">
+              ${resenasHtml}
+            </div>
+            
+            <div class="review-form" style="margin-top:8px;">
+              <b style="font-size:11px;">Añadir Calificación:</b>
+              <select id="stars_${data.id}">
+                <option value="5">★★★★★ (5/5)</option>
+                <option value="4">★★★★☆ (4/5)</option>
+                <option value="3">★★★☆☆ (3/5)</option>
+                <option value="2">★★☆☆☆ (2/5)</option>
+                <option value="1">★☆☆☆☆ (1/5)</option>
+              </select>
+              <textarea id="comment_${data.id}" rows="2" placeholder="Escribe un comentario sobre este cliente..."></textarea>
+              <button class="btn-review" onclick="event.stopPropagation(); enviarCalificacion('${data.id}')">⭐ Guardar Opinión</button>
+            </div>
+          </div>
+
+          <br>
+          <button onclick='event.stopPropagation(); abrirModalEditarProtected(${dataJson})' style="background-color: #f39c12; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px; margin-bottom: 6px;">
+            ✏️ Editar Cliente (Admin)
+          </button>
+          <button onclick="event.stopPropagation(); eliminarCliente('${data.id}')" style="background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 11px;">
+            🗑️ Eliminar Cliente (Admin)
+          </button>
+        </div>
+      `;
+      marker.bindPopup(popupContent);
+      listaMarcadores.push({instanciaMarker: marker, categoria: calificacion || 'MALO' });
+    }
+
+    window.enviarCalificacion = async function(clienteId) {
+      const selectStars = document.getElementById(`stars_${clienteId}`);
+      const textComment = document.getElementById(`comment_${clienteId}`);
+
+      const estrellas = parseInt(selectStars.value);
+      const comentario = textComment.value.trim();
+
+      if (!comentario) {
+        alert("Por favor escribe un comentario.");
         return;
       }
 
-      lista.forEach((c, idx) => {
-        const pagadoHoy = c.ultimoPagoFecha === todayStr;
-        const fechaReferencia = c.ultimoPagoFecha || c.fechaCreacion;
-        const diasSinPagar = calcularDiasAtrasoSinDomingos(fechaReferencia);
+      const usuarioNombre = usuarioActual ? usuarioActual.email.split('@')[0] : 'Usuario';
 
-        let statusClass = 'status-yellow';
-        let statusIcon = '👤';
+      const nuevaResena = {
+        usuario: usuarioNombre,
+        estrellas: estrellas,
+        comentario: comentario,
+        fecha: new Date().toISOString()
+      };
 
-        if (c.saldoPendiente <= 0) { statusClass = 'status-grey'; statusIcon = '✓'; }
-        else if (pagadoHoy) { statusClass = 'status-green'; statusIcon = '✓'; }
-        else if (diasSinPagar >= 5) { statusClass = 'status-red'; }
-
-        const div = document.createElement('div');
-        div.className = 'client-card';
-        div.innerHTML = `
-          <div class="icon-status ${statusClass}">${statusIcon}</div>
-          <div class="client-info">
-            <div class="name">${idx + 1}. ${c.nombre}</div>
-            <div class="details">Cuota: <b>$${c.cuota.toFixed(2)}</b> | Saldo: <b>$${c.saldoPendiente.toFixed(2)}</b></div>
-          </div>
-          <div class="actions-group">
-            ${!pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-action" onclick="abrirModalCobro('${c.id}')">Ingresar Pago</button>` : ''}
-            ${pagadoHoy ? `<button class="btn-undo" title="Quitar Pago Inmediatamente" onclick="quitarPagoInmediato('${c.id}')">❌ Quitar Pago</button>` : ''}
-            <button class="btn-edit" onclick="pedirPin('editar', '${c.id}')">✏️</button>
-            <button class="btn-delete" onclick="pedirPin('eliminar', '${c.id}')">🗑️</button>
-          </div>
-        `;
-        contenedor.appendChild(div);
-      });
-    }
-
-    window.setFiltro = (filtro, btn) => {
-      filtroActual = filtro;
-      document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      renderizarLista();
-    };
-
-    window.filtrarClientes = () => renderizarLista();
-
-    // --- MODAL DE COBRO COMPLETO Y LÓGICA DE COBRANZA ---
-    window.abrirModalCobro = (id) => {
-      const c = todosLosClientes.find(x => x.id === id);
-      if (!c) return;
-
-      document.getElementById('mcClienteId').value = c.id;
-      document.getElementById('mcNombre').innerText = c.nombre;
-      
-      const cuotasPagadas = Math.floor((c.montoTotal - c.saldoPendiente) / c.cuota);
-      const cuotasTotales = c.plazo || 1;
-      const cuotasPendientes = Math.ceil(c.saldoPendiente / c.cuota);
-      const diasAtraso = calcularDiasAtrasoSinDomingos(c.ultimoPagoFecha || c.fechaCreacion);
-
-      document.getElementById('mcPagadas').innerText = cuotasPagadas;
-      document.getElementById('mcTotales').innerText = cuotasTotales;
-      document.getElementById('mcAtrasadas').innerText = diasAtraso;
-      document.getElementById('mcPendientes').innerText = cuotasPendientes;
-
-      document.getElementById('mcBtnTel').href = `tel:${c.telefono || ''}`;
-      document.getElementById('mcBtnRutaRes').onclick = () => abrirMapaTexto(c.dirResidencia);
-      document.getElementById('mcBtnRutaLoc').onclick = () => abrirMapaTexto(c.dirLocal);
-
-      const imgFachada = document.getElementById('mcFotoFachada');
-      if (c.fotoFachada) {
-        imgFachada.src = c.fotoFachada;
-        imgFachada.style.display = 'block';
-      } else {
-        imgFachada.style.display = 'none';
-      }
-
-      document.getElementById('mcTotalVenta').value = c.montoTotal.toFixed(2);
-      document.getElementById('mcSaldoActual').value = c.saldoPendiente.toFixed(2);
-      document.getElementById('mcCuotaBase').value = c.cuota;
-
-      document.querySelector('input[name="modoCobro"][value="cuota"]').checked = true;
-      cambiarModoCobro('cuota');
-
-      document.getElementById('modalCobroAvanzado').style.display = 'flex';
-    };
-
-    window.cerrarModalCobro = () => {
-      document.getElementById('modalCobroAvanzado').style.display = 'none';
-    };
-
-    window.cambiarModoCobro = (modo) => {
-      const inputValor = document.getElementById('mcValorPagar');
-      const inputCuotas = document.getElementById('mcNumCuotas');
-
-      if (modo === 'cuota') {
-        inputCuotas.disabled = false;
-        inputCuotas.value = 1;
-        inputValor.readOnly = true;
-      } else if (modo === 'abono') {
-        inputCuotas.disabled = true;
-        inputCuotas.value = 0;
-        inputValor.readOnly = false;
-      } else if (modo === 'nopago') {
-        inputCuotas.disabled = true;
-        inputCuotas.value = 0;
-        inputValor.value = (0).toFixed(2);
-        inputValor.readOnly = true;
-      }
-      recalcularModalCobro();
-    };
-
-    window.recalcularModalCobro = () => {
-      const modo = document.querySelector('input[name="modoCobro"]:checked').value;
-      const saldoActual = parseFloat(document.getElementById('mcSaldoActual').value) || 0;
-      const cuotaBase = parseFloat(document.getElementById('mcCuotaBase').value) || 0;
-      const sancion = parseFloat(document.getElementById('mcSancion').value) || 0;
-
-      let valorPagar = 0;
-
-      if (modo === 'cuota') {
-        const cantCuotas = parseInt(document.getElementById('mcNumCuotas').value) || 0;
-        valorPagar = cantCuotas * cuotaBase;
-        document.getElementById('mcValorPagar').value = valorPagar.toFixed(2);
-      } else if (modo === 'abono') {
-        valorPagar = parseFloat(document.getElementById('mcValorPagar').value) || 0;
-      } else if (modo === 'nopago') {
-        valorPagar = 0;
-      }
-
-      const nuevoSaldo = Math.max(0, saldoActual - valorPagar + sancion);
-      document.getElementById('mcNuevoSaldo').value = nuevoSaldo.toFixed(2);
-    };
-
-    window.confirmarIngresoCobro = async () => {
-      const id = document.getElementById('mcClienteId').value;
-      const nuevoSaldo = parseFloat(document.getElementById('mcNuevoSaldo').value) || 0;
-      const valorAbonado = parseFloat(document.getElementById('mcValorPagar').value) || 0;
-      const observaciones = document.getElementById('mcObservaciones').value;
-
-      await updateDoc(doc(db, "prestamos", id), {
-        saldoPendiente: nuevoSaldo,
-        ultimoPagoFecha: todayStr,
-        totalAbonadoHoy: valorAbonado,
-        ultimaObservacion: observaciones
-      });
-
-      cerrarModalCobro();
-      alert("¡Registro de cobro guardado correctamente!");
-      cargarDatos();
-    };
-
-    // --- QUITAR PAGO DIRECTAMENTE SIN CÓDIGO (DURANTE LA CAJA ABIERTA DEL DÍA) ---
-    window.quitarPagoInmediato = async (id) => {
-      const c = todosLosClientes.find(x => x.id === id);
-      if (!c) return;
-
-      if (confirm(`¿Deseas quitar el pago ingresado hoy a ${c.nombre}?`)) {
-        const montoAbonado = c.totalAbonadoHoy || 0;
-        const saldoRestaurado = c.saldoPendiente + montoAbonado;
-
-        await updateDoc(doc(db, "prestamos", id), {
-          saldoPendiente: saldoRestaurado,
-          ultimoPagoFecha: "",
-          totalAbonadoHoy: 0,
-          ultimaObservacion: "Pago quitado durante el turno de hoy"
+      try {
+        await updateDoc(doc(db, "clientes", clienteId), {
+          resenas: arrayUnion(nuevaResena)
         });
-
-        alert(`¡Pago retirado correctamente!\nSe devolvieron $${montoAbonado.toFixed(2)} al saldo de ${c.nombre}.`);
-        cargarDatos();
+        alert("⭐ Opinión guardada correctamente");
+        cargarClientes();
+      } catch (error) {
+        console.error("Error al guardar reseña:", error);
+        alert("Hubo un error al publicar tu comentario: " + error.message);
       }
     };
 
-    // --- CIERRE DE CAJA Y REINICIO / RESET PARA CONTINUAR MAÑANA ---
-    window.realizarCierreCaja = async () => {
-      const cajaTexto = document.getElementById('resCajaActual').innerText.replace('$', '');
-      const efectivo = parseFloat(cajaTexto) || 0;
-
-      if (confirm(`¿Deseas cerrar caja hoy con $${efectivo.toFixed(2)}, guardar la Base para mañana y REINICIAR las rutas para un nuevo turno?`)) {
-        const hoy = new Date();
-        const manana = new Date(hoy);
-        manana.setDate(manana.getDate() + 1);
-        const mananaStr = manana.toISOString().split('T')[0];
-
-        // 1. Guardar Base Inicial para la caja de mañana
-        await setDoc(doc(db, "caja", mananaStr), { baseInicial: efectivo });
-
-        // 2. Reiniciar registros diarios de todos los clientes para liberar la ruta de cobros
-        const promesasReset = todosLosClientes.map(cliente => {
-          return updateDoc(doc(db, "prestamos", cliente.id), {
-            ultimoPagoFecha: "",
-            totalAbonadoHoy: 0
-          });
-        });
-
-        await Promise.all(promesasReset);
-
-        alert("¡Cierre de caja completado con éxito!\n\n1. Se guardó la base para mañana.\n2. Se reiniciaron los estados de cobro. Todos los clientes están listos en 'Pendientes'.");
-        cargarDatos();
+    window.eliminarCliente = async function (id) {
+      if (!id) {
+        alert("❌ Error: No se encontró el ID del cliente.");
+        return;
       }
-    };
 
-    window.pedirPin = (accion, id) => {
-      accionPendiente = { accion, id };
-      document.getElementById('modalPin').style.display = 'flex';
-    };
+      const CLAVE_ADMIN = "1098";
+      const passwordIngresada = prompt("⚠️ Acción protegida\nIngresa la contraseña de administrador para eliminar:");
 
-    window.cerrarModalPin = () => {
-      document.getElementById('modalPin').style.display = 'none';
-      document.getElementById('inputPin').value = '';
-    };
+      if (passwordIngresada === null) return;
 
-    window.validarPin = async () => {
-      const pin = document.getElementById('inputPin').value;
-      if (pin === PIN_ADMIN) {
-        cerrarModalPin();
-        if (accionPendiente.accion === 'eliminar') {
-          if (confirm("¿Seguro que deseas eliminar este cliente?")) {
-            await deleteDoc(doc(db, "prestamos", accionPendiente.id));
-            cargarDatos();
-          }
-        } else if (accionPendiente.accion === 'editar') {
-          abrirModalEditar(accionPendiente.id);
+      if (passwordIngresada !== CLAVE_ADMIN) {
+        alert("❌ Contraseña incorrecta. No tienes permiso para eliminar.");
+        return;
+      }
+
+      if (confirm("¿Estás seguro de que deseas eliminar este cliente del mapa?")) {
+        try {
+          await deleteDoc(doc(db, "clientes", id.trim()));
+          alert("✅ Cliente eliminado con éxito");
+          cargarClientes();
+        } catch (error) {
+          console.error("Error al eliminar cliente:", error);
+          alert("Hubo un error al intentar eliminar el cliente: " + error.message);
         }
-      } else {
-        alert("Clave incorrecta.");
       }
     };
 
-    function abrirModalEditar(id) {
-      const cliente = todosLosClientes.find(c => c.id === id);
-      if (!cliente) return;
+    async function cargarClientes() {
+      listaMarcadores.forEach(m => map.removeLayer(m.instanciaMarker));
+      listaMarcadores = [];
 
-      document.getElementById('editId').value = cliente.id;
-      document.getElementById('editNombre').value = cliente.nombre;
-      document.getElementById('editTelefono').value = cliente.telefono || '';
-      document.getElementById('editSaldo').value = cliente.saldoPendiente;
-      document.getElementById('editCuota').value = cliente.cuota;
-
-      document.getElementById('modalEditar').style.display = 'flex';
+      try {
+        const querySnapshot = await getDocs(collection(db, "clientes"));
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          data.id = doc.id;
+          if (data.lat && data.lng) {
+            agregarMarcadorAlMapa(data);
+          }
+        });
+      } catch (error) {
+        console.error("Error cargando clientes:", error);
+      }
     }
 
-    window.cerrarModalEditar = () => {
-      document.getElementById('modalEditar').style.display = 'none';
-    };
+    async function subirImagenImgBB(file) {
+      if (!file) return null;
+      const formData = new FormData();
+      formData.append("image", file);
 
-    window.guardarEdicionCliente = async () => {
-      const id = document.getElementById('editId').value;
-      const nombre = document.getElementById('editNombre').value;
-      const telefono = document.getElementById('editTelefono').value;
-      const saldoPendiente = parseFloat(document.getElementById('editSaldo').value) || 0;
-      const cuota = parseFloat(document.getElementById('editCuota').value) || 0;
-
-      await updateDoc(doc(db, "prestamos", id), {
-        nombre, telefono, saldoPendiente, cuota
+      const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        method: "POST",
+        body: formData
       });
 
-      cerrarModalEditar();
-      alert("¡Cliente actualizado!");
-      cargarDatos();
+      const data = await res.json();
+      if (data.success) {
+        return data.data.url;
+      } else {
+        throw new Error("Error al subir la imagen a ImgBB");
+      }
+    }
+
+    window.guardarNuevoCliente = async function() {
+      const nombre = document.getElementById('inputNombre').value.trim();
+      const direccion = document.getElementById('inputDireccion').value.trim();
+      const calificacion = document.getElementById('inputCalificacion').value;
+      const monto = parseFloat(document.getElementById('inputMonto').value) || 0;
+      const score = parseInt(document.getElementById('inputScore').value) || 0;
+      const motivo = document.getElementById('inputMotivo').value.trim();
+      const fotoFile = document.getElementById('inputFoto').files[0];
+
+      if (!nombre) {
+        alert("Por favor ingresa el nombre del cliente");
+        return;
+      }
+
+      const btnGuardar = document.getElementById('btnGuardar');
+      btnGuardar.disabled = true;
+      btnGuardar.innerText = "Subiendo foto y guardando...";
+
+      try {
+        let fotoUrl = "";
+        if (fotoFile) {
+          fotoUrl = await subirImagenImgBB(fotoFile);
+        }
+
+        const nuevoCliente = {
+          nombre: nombre,
+          direccion: direccion,
+          calificacion: calificacion,
+          monto_solicitado: monto,
+          score_credito: score,
+          motivo: motivo,
+          fotoUrl: fotoUrl,
+          lat: coordenadasTemp.lat,
+          lng: coordenadasTemp.lng,
+          resenas: []
+        };
+
+        const docRef = await addDoc(collection(db, "clientes"), nuevoCliente);
+        nuevoCliente.id = docRef.id;
+        agregarMarcadorAlMapa(nuevoCliente);
+        cerrarModal();
+      } catch (error) {
+        alert("Error al guardar: " + error.message);
+      } finally {
+        btnGuardar.disabled = false;
+        btnGuardar.innerText = "Guardar";
+      }
+    };
+
+    window.cerrarModal = function() {
+      document.getElementById('modalForm').style.display = 'none';
+      document.getElementById('inputNombre').value = '';
+      document.getElementById('inputDireccion').value = '';
+      document.getElementById('inputMonto').value = '';
+      document.getElementById('inputScore').value = '0';
+      document.getElementById('inputMotivo').value = '';
+      document.getElementById('inputFoto').value = '';
+    };
+
+    window.filtrarMapa = function(tipo) {
+      listaMarcadores.forEach(item => {
+        if (tipo === 'TODOS' || item.categoria === tipo) {
+          if (!map.hasLayer(item.instanciaMarker)) {
+            map.addLayer(item.instanciaMarker);
+          }
+        } else {
+          if (map.hasLayer(item.instanciaMarker)) {
+            map.removeLayer(item.instanciaMarker);
+          }
+        }
+      });
+    };
+
+    window.abrirModalEditarProtected = function(cliente) {
+      const CLAVE_ADMIN = "1098";
+      const passwordIngresada = prompt("⚠️ Acción protegida\nIngresa la contraseña de administrador para editar:");
+
+      if (passwordIngresada === null) return;
+      if (passwordIngresada !== CLAVE_ADMIN) {
+        alert("❌ Contraseña incorrecta. No tienes permiso para editar.");
+        return;
+      }
+
+      document.getElementById('editClienteId').value = cliente.id;
+      document.getElementById('editFotoUrlActual').value = cliente.fotoUrl || '';
+      document.getElementById('editNombre').value = cliente.nombre || '';
+      document.getElementById('editDireccion').value = cliente.direccion || '';
+      document.getElementById('editCalificacion').value = cliente.calificacion || 'BUENO';
+      document.getElementById('editMonto').value = cliente.monto_solicitado || 0;
+      document.getElementById('editScore').value = cliente.score_credito || 0;
+      document.getElementById('editMotivo').value = cliente.motivo || '';
+      document.getElementById('editFoto').value = '';
+      
+      document.getElementById('modalEditForm').style.display = 'flex';
+    };
+
+    window.cerrarModalEdit = function() {
+      document.getElementById('modalEditForm').style.display = 'none';
+    };
+
+    window.guardarCambiosCliente = async function() {
+      const id = document.getElementById('editClienteId').value;
+      if (!id) {
+        alert("Error: No se encontró el ID del cliente.");
+        return;
+      }
+
+      const btnEditar = document.getElementById('btnEditarGuardar');
+      btnEditar.disabled = true;
+      btnEditar.innerText = "Subiendo foto y guardando...";
+
+      try {
+        const fotoNueva = document.getElementById('editFoto').files[0];
+        let fotoUrl = document.getElementById('editFotoUrlActual').value;
+
+        if (fotoNueva) {
+          fotoUrl = await subirImagenImgBB(fotoNueva);
+        }
+
+        const datosActualizados = {
+          nombre: document.getElementById('editNombre').value.trim(),
+          direccion: document.getElementById('editDireccion').value.trim(),
+          calificacion: document.getElementById('editCalificacion').value,
+          monto_solicitado: parseFloat(document.getElementById('editMonto').value) || 0,
+          score_credito: parseInt(document.getElementById('editScore').value) || 0,
+          motivo: document.getElementById('editMotivo').value.trim(),
+          fotoUrl: fotoUrl
+        };
+
+        await updateDoc(doc(db, "clientes", id), datosActualizados);
+        alert("✅ Cliente actualizado con éxito");
+        cerrarModalEdit();
+        cargarClientes();
+      } catch (error) {
+        console.error("Error al actualizar cliente:", error);
+        alert("Hubo un error al guardar los cambios: " + error.message);
+      } finally {
+        btnEditar.disabled = false;
+        btnEditar.innerText = "Guardar Cambios";
+      }
     };
   </script>
 </body>
