@@ -561,7 +561,6 @@
       const resenas = data.resenas || [];
       const infoEstrellas = calcularPromedioEstrellas(resenas);
 
-      // Identificar si el usuario actual ya tiene una reseña publicada
       const usuarioNombre = usuarioActual ? usuarioActual.email.split('@')[0] : '';
       const resenaPrevia = resenas.find(r => r.usuario === usuarioNombre);
 
@@ -569,12 +568,18 @@
       const comentarioPrevio = resenaPrevia ? resenaPrevia.comentario : '';
       const textoBoton = resenaPrevia ? "✏️ Actualizar mi Opinión" : "⭐ Guardar Opinión";
 
-      let resenasHtml = resenas.slice(-5).reverse().map(r => `
-        <div class="review-item">
-          <strong>${r.usuario || 'Usuario'}:</strong> ${'★'.repeat(r.estrellas)}<br>
-          ${r.comentario}
-        </div>
-      `).join('');
+      // Renderizar comentarios con opción de borrar como Admin (❌)
+      let resenasHtml = resenas.slice(-5).reverse().map((r) => {
+        const indexReal = resenas.findIndex(orig => orig.usuario === r.usuario && orig.fecha === r.fecha);
+        return `
+          <div class="review-item" style="position: relative;">
+            <strong>${r.usuario || 'Usuario'}:</strong> ${'★'.repeat(r.estrellas)}
+            <button onclick="event.stopPropagation(); eliminarResena('${data.id}', ${indexReal})" style="position: absolute; right: 4px; top: 4px; background: none; border: none; color: #dc3545; font-weight: bold; cursor: pointer; font-size: 11px;" title="Eliminar reseña (Admin)">❌</button>
+            <br>
+            ${r.comentario}
+          </div>
+        `;
+      }).join('');
 
       if (!resenasHtml) {
         resenasHtml = '<div style="font-size:11px; color:#777;">Sin comentarios aún.</div>';
@@ -654,10 +659,10 @@
 
         let resenasActuales = clienteSnap.data().resenas || [];
 
-        // Remover reseña previa del mismo usuario si ya existía
+        // Eliminar reseña previa del mismo usuario si ya existía para evitar duplicados
         resenasActuales = resenasActuales.filter(r => r.usuario !== usuarioNombre);
 
-        // Insertar reseña actualizada
+        // Agregar la reseña actualizada
         resenasActuales.push({
           usuario: usuarioNombre,
           estrellas: estrellas,
@@ -675,6 +680,43 @@
       } catch (error) {
         console.error("Error al guardar reseña:", error);
         alert("Hubo un error al publicar tu comentario: " + error.message);
+      }
+    };
+
+    window.eliminarResena = async function(clienteId, indexResena) {
+      const CLAVE_ADMIN = "1098";
+      const passwordIngresada = prompt("⚠️ Acción protegida\nIngresa la contraseña de administrador para eliminar esta reseña:");
+
+      if (passwordIngresada === null) return;
+
+      if (passwordIngresada !== CLAVE_ADMIN) {
+        alert("❌ Contraseña incorrecta. No tienes permiso para eliminar reseñas.");
+        return;
+      }
+
+      try {
+        const clienteRef = doc(db, "clientes", clienteId);
+        const clienteSnap = await getDoc(clienteRef);
+
+        if (!clienteSnap.exists()) {
+          alert("El cliente no existe.");
+          return;
+        }
+
+        let resenasActuales = clienteSnap.data().resenas || [];
+
+        // Eliminar elemento según el índice
+        resenasActuales.splice(indexResena, 1);
+
+        await updateDoc(clienteRef, {
+          resenas: resenasActuales
+        });
+
+        alert("🗑️ Reseña eliminada con éxito");
+        cargarClientes();
+      } catch (error) {
+        console.error("Error al eliminar reseña:", error);
+        alert("Hubo un error al eliminar la reseña: " + error.message);
       }
     };
 
