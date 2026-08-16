@@ -372,7 +372,7 @@
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, getDoc, setDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { 
       getAuth, 
       signInWithEmailAndPassword, 
@@ -561,7 +561,15 @@
       const resenas = data.resenas || [];
       const infoEstrellas = calcularPromedioEstrellas(resenas);
 
-      let resenasHtml = resenas.slice(-3).reverse().map(r => `
+      // Identificar si el usuario actual ya tiene una reseña publicada
+      const usuarioNombre = usuarioActual ? usuarioActual.email.split('@')[0] : '';
+      const resenaPrevia = resenas.find(r => r.usuario === usuarioNombre);
+
+      const estrellasPrevias = resenaPrevia ? resenaPrevia.estrellas : 5;
+      const comentarioPrevio = resenaPrevia ? resenaPrevia.comentario : '';
+      const textoBoton = resenaPrevia ? "✏️ Actualizar mi Opinión" : "⭐ Guardar Opinión";
+
+      let resenasHtml = resenas.slice(-5).reverse().map(r => `
         <div class="review-item">
           <strong>${r.usuario || 'Usuario'}:</strong> ${'★'.repeat(r.estrellas)}<br>
           ${r.comentario}
@@ -580,7 +588,7 @@
           <b style="text-transform:uppercase;">${data.nombre || 'Cliente sin nombre'}</b><br>
           <div style="margin: 4px 0;">
             <span class="star-rating">${infoEstrellas.estrellasHtml}</span> 
-            <b>${infoEstrellas.promedio}</b> (${infoEstrellas.total} resenas)
+            <b>${infoEstrellas.promedio}</b> (${infoEstrellas.total} reseñas)
           </div>
           <b>Estado:</b> <span style="color:${colorEstado}; font-weight:bold;">${calificacion || 'N/A'}</span><br>
           <b>Monto solicitado:</b> $${data.monto_solicitado || 0}<br>
@@ -595,16 +603,16 @@
             </div>
             
             <div class="review-form" style="margin-top:8px;">
-              <b style="font-size:11px;">Añadir Calificación:</b>
+              <b style="font-size:11px;">${resenaPrevia ? 'Tu Evaluación (Editar):' : 'Añadir Calificación:'}</b>
               <select id="stars_${data.id}">
-                <option value="5">★★★★★ (5/5)</option>
-                <option value="4">★★★★☆ (4/5)</option>
-                <option value="3">★★★☆☆ (3/5)</option>
-                <option value="2">★★☆☆☆ (2/5)</option>
-                <option value="1">★☆☆☆☆ (1/5)</option>
+                <option value="5" ${estrellasPrevias === 5 ? 'selected' : ''}>★★★★★ (5/5)</option>
+                <option value="4" ${estrellasPrevias === 4 ? 'selected' : ''}>★★★★☆ (4/5)</option>
+                <option value="3" ${estrellasPrevias === 3 ? 'selected' : ''}>★★★☆☆ (3/5)</option>
+                <option value="2" ${estrellasPrevias === 2 ? 'selected' : ''}>★★☆☆☆ (2/5)</option>
+                <option value="1" ${estrellasPrevias === 1 ? 'selected' : ''}>★☆☆☆☆ (1/5)</option>
               </select>
-              <textarea id="comment_${data.id}" rows="2" placeholder="Escribe un comentario sobre este cliente..."></textarea>
-              <button class="btn-review" onclick="event.stopPropagation(); enviarCalificacion('${data.id}')">⭐ Guardar Opinión</button>
+              <textarea id="comment_${data.id}" rows="2" placeholder="Escribe un comentario sobre este cliente...">${comentarioPrevio}</textarea>
+              <button class="btn-review" onclick="event.stopPropagation(); enviarCalificacion('${data.id}')">${textoBoton}</button>
             </div>
           </div>
 
@@ -635,17 +643,33 @@
 
       const usuarioNombre = usuarioActual ? usuarioActual.email.split('@')[0] : 'Usuario';
 
-      const nuevaResena = {
-        usuario: usuarioNombre,
-        estrellas: estrellas,
-        comentario: comentario,
-        fecha: new Date().toISOString()
-      };
-
       try {
-        await updateDoc(doc(db, "clientes", clienteId), {
-          resenas: arrayUnion(nuevaResena)
+        const clienteRef = doc(db, "clientes", clienteId);
+        const clienteSnap = await getDoc(clienteRef);
+
+        if (!clienteSnap.exists()) {
+          alert("El cliente no existe.");
+          return;
+        }
+
+        let resenasActuales = clienteSnap.data().resenas || [];
+
+        // Remover reseña previa del mismo usuario si ya existía
+        resenasActuales = resenasActuales.filter(r => r.usuario !== usuarioNombre);
+
+        // Insertar reseña actualizada
+        resenasActuales.push({
+          usuario: usuarioNombre,
+          estrellas: estrellas,
+          comentario: comentario,
+          fecha: new Date().toISOString()
         });
+
+        // Guardar actualización en Firestore
+        await updateDoc(clienteRef, {
+          resenas: resenasActuales
+        });
+
         alert("⭐ Opinión guardada correctamente");
         cargarClientes();
       } catch (error) {
