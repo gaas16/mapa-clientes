@@ -79,7 +79,7 @@
       top: 10px;
       right: 10px;
       left: 10px;
-      max-width: 450px;
+      max-width: 550px;
       margin: 0 auto;
       z-index: 1000;
       background: rgba(255, 255, 255, 0.95);
@@ -90,7 +90,7 @@
       gap: 6px;
       align-items: center;
       justify-content: space-between;
-      overflow-x: auto;
+      flex-wrap: wrap;
     }
 
     .filter-btn {
@@ -111,6 +111,21 @@
     .btn-regular { background-color: #e67e22; }
     .btn-malo { background-color: #e74c3c; }
     .btn-logout { background-color: #7f8c8d; }
+
+    /* Input para buscar cliente registrado */
+    .search-client-container {
+      width: 100%;
+      margin-top: 4px;
+    }
+    .search-client-input {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid #007bff;
+      border-radius: 6px;
+      font-size: 12px;
+      box-sizing: border-box;
+      outline: none;
+    }
 
     .instruction-banner {
       position: absolute;
@@ -260,11 +275,17 @@
       <button class="filter-btn btn-regular" onclick="filtrarMapa('REGULAR')">Regulares</button>
       <button class="filter-btn btn-malo" onclick="filtrarMapa('MALO')">Malos</button>
       <button class="filter-btn btn-logout" onclick="cerrarSesion()">Salir</button>
+
+      <!-- Buscador de Cliente por Nombre -->
+      <div class="search-client-container">
+        <input type="text" id="inputBuscarCliente" class="search-client-input" list="listaClientesNombres" placeholder="👤 Buscar cliente por nombre..." oninput="buscarClientePorNombre(this.value)">
+        <datalist id="listaClientesNombres"></datalist>
+      </div>
     </div>
 
     <!-- Instrucción visual -->
     <div class="instruction-banner">
-      🔍 Busca dirección o haz <b>doble clic</b> para agregar cliente
+      🔍 Busca dirección global con la lupa o haz <b>doble clic</b> para agregar cliente
     </div>
   </div>
 
@@ -400,6 +421,7 @@
 
     let map = null;
     let listaMarcadores = [];
+    let listaClientesGlobal = [];
     let coordenadasTemp = null;
     let usuarioActual = null;
 
@@ -515,12 +537,28 @@
         attribution: '&copy; OpenStreetMap &copy; CARTO'
       }).addTo(map);
 
+      // Buscador de Direcciones Global
+      const geocoder = L.Control.Geocoder.nominatim({
+        geocodingQueryParams: {
+          limit: 10
+        }
+      });
+
       L.Control.geocoder({
+        geocoder: geocoder,
         defaultMarkGeocode: false,
-        placeholder: "Escribe calle y número..."
+        placeholder: "🌐 Buscar ciudad, calle o dirección...",
+        position: 'topleft'
       })
       .on('markgeocode', function(e) {
-        map.setView(e.geocode.center, 17);
+        const bbox = e.geocode.bbox;
+        const poly = L.polygon([
+          bbox.getSouthEast(),
+          bbox.getNorthEast(),
+          bbox.getNorthWest(),
+          bbox.getSouthWest()
+        ]);
+        map.fitBounds(poly.getBounds());
       })
       .addTo(map);
 
@@ -568,7 +606,6 @@
       const comentarioPrevio = resenaPrevia ? resenaPrevia.comentario : '';
       const textoBoton = resenaPrevia ? "✏️ Actualizar mi Opinión" : "⭐ Guardar Opinión";
 
-      // Renderizar comentarios con opción de borrar como Admin (❌)
       let resenasHtml = resenas.slice(-5).reverse().map((r) => {
         const indexReal = resenas.findIndex(orig => orig.usuario === r.usuario && orig.fecha === r.fecha);
         return `
@@ -631,8 +668,22 @@
         </div>
       `;
       marker.bindPopup(popupContent);
-      listaMarcadores.push({instanciaMarker: marker, categoria: calificacion || 'MALO' });
+      listaMarcadores.push({ id: data.id, nombre: data.nombre, instanciaMarker: marker, categoria: calificacion || 'MALO' });
     }
+
+    window.buscarClientePorNombre = function(valorIngresado) {
+      if (!valorIngresado) return;
+
+      const clienteEncontrado = listaMarcadores.find(m => 
+        m.nombre && m.nombre.toLowerCase() === valorIngresado.trim().toLowerCase()
+      );
+
+      if (clienteEncontrado) {
+        const marker = clienteEncontrado.instanciaMarker;
+        map.setView(marker.getLatLng(), 18);
+        marker.openPopup();
+      }
+    };
 
     window.enviarCalificacion = async function(clienteId) {
       const selectStars = document.getElementById(`stars_${clienteId}`);
@@ -658,11 +709,8 @@
         }
 
         let resenasActuales = clienteSnap.data().resenas || [];
-
-        // Eliminar reseña previa del mismo usuario si ya existía para evitar duplicados
         resenasActuales = resenasActuales.filter(r => r.usuario !== usuarioNombre);
 
-        // Agregar la reseña actualizada
         resenasActuales.push({
           usuario: usuarioNombre,
           estrellas: estrellas,
@@ -670,7 +718,6 @@
           fecha: new Date().toISOString()
         });
 
-        // Guardar actualización en Firestore
         await updateDoc(clienteRef, {
           resenas: resenasActuales
         });
@@ -704,8 +751,6 @@
         }
 
         let resenasActuales = clienteSnap.data().resenas || [];
-
-        // Eliminar elemento según el índice
         resenasActuales.splice(indexResena, 1);
 
         await updateDoc(clienteRef, {
@@ -751,6 +796,10 @@
     async function cargarClientes() {
       listaMarcadores.forEach(m => map.removeLayer(m.instanciaMarker));
       listaMarcadores = [];
+      listaClientesGlobal = [];
+
+      const datalist = document.getElementById('listaClientesNombres');
+      datalist.innerHTML = '';
 
       try {
         const querySnapshot = await getDocs(collection(db, "clientes"));
@@ -759,6 +808,13 @@
           data.id = doc.id;
           if (data.lat && data.lng) {
             agregarMarcadorAlMapa(data);
+            listaClientesGlobal.push(data);
+
+            if (data.nombre) {
+              const option = document.createElement('option');
+              option.value = data.nombre;
+              datalist.appendChild(option);
+            }
           }
         });
       } catch (error) {
@@ -823,8 +879,8 @@
 
         const docRef = await addDoc(collection(db, "clientes"), nuevoCliente);
         nuevoCliente.id = docRef.id;
-        agregarMarcadorAlMapa(nuevoCliente);
         cerrarModal();
+        cargarClientes();
       } catch (error) {
         alert("Error al guardar: " + error.message);
       } finally {
